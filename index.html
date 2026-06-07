@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>假设检验大侦探 - Hypothesis Detective</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #fdf6f0 0%, #f8e8d0 50%, #fef9f3 100%);
+    color: #3d2c1e;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* === Header === */
+  .header {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    padding: 16px 24px;
+    text-align: center;
+    border-bottom: 3px solid #feca57;
+    position: relative;
+    box-shadow: 0 2px 12px rgba(238,90,36,0.2);
+  }
+  .header h1 { font-size: 1.8em; color: #fff; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+  .header .badge {
+    display: inline-block; background: #feca57; color: #6b3a1f; padding: 4px 14px;
+    border-radius: 20px; font-size: 0.75em; margin-left: 8px; vertical-align: middle;
+    font-weight: bold;
+  }
+
+  /* === Share Panel === */
+  .share-panel {
+    background: #fffdf7; border-bottom: 2px dashed #f0d9a0;
+    padding: 12px 20px; text-align: center; display: flex;
+    align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;
+  }
+  .share-panel .qr-code { border-radius: 8px; border: 2px solid #f0d9a0; width: 90px; height: 90px; }
+  .share-panel .share-info { text-align: left; font-size: 0.82em; color: #6b5a44; line-height: 1.6; }
+  .share-panel .share-url { font-weight: bold; color: #c0392b; font-size: 0.9em; word-break: break-all; }
+  .share-panel .share-label { color: #8b7355; font-size: 0.9em; }
+
+  /* === Layout === */
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+  /* === Scene Card === */
+  .scene-card {
+    background: #fffdf7;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid #f0d9a0;
+    position: relative;
+    box-shadow: 0 3px 15px rgba(180,140,80,0.10);
+  }
+  .scene-card h2 {
+    font-size: 1.15em; color: #c0392b; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .scene-card h2 .icon { font-size: 1.4em; }
+
+  .story-box {
+    background: #fff9ef;
+    border-radius: 12px;
+    padding: 18px 20px;
+    line-height: 1.7;
+    font-size: 0.95em;
+    border-left: 4px solid #ee5a24;
+    color: #4a3728;
+  }
+  .story-box strong { color: #c0392b; }
+  .story-box .emoji-big { font-size: 1.5em; }
+
+  /* === Cookie Visualization === */
+  .cookie-row {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    margin: 16px 0; min-height: 60px;
+  }
+  .cookie {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 45% 40%, #f4c27a, #d4943a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75em; font-weight: bold; color: #3d1c00;
+    position: relative;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+    animation: cookieDrop 0.5s ease-out;
+    cursor: default;
+    transition: transform 0.2s;
+  }
+  .cookie:hover { transform: scale(1.15); z-index: 2; }
+  .cookie .chips {
+    position: absolute; font-size: 0.55em; letter-spacing: -1px;
+    pointer-events: none;
+  }
+  @keyframes cookieDrop {
+    from { transform: translateY(-40px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  /* === Buttons === */
+  .btn {
+    padding: 10px 22px; border: none; border-radius: 8px;
+    font-size: 0.9em; font-weight: bold; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.5px;
+    font-family: inherit;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-primary { background: #ee5a24; color: #fff; }
+  .btn-secondary { background: #fff; color: #c0392b; border: 2px solid #ee5a24; }
+  .btn-success { background: #27ae60; color: #fff; }
+  .btn-warn { background: #feca57; color: #6b3a1f; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+  /* === Stats Panel === */
+  .stats-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px; margin: 14px 0;
+  }
+  .stat-item {
+    background: #fff9ef; border-radius: 10px; padding: 12px; text-align: center;
+    border: 1px solid #f0d9a0;
+  }
+  .stat-item .val { font-size: 1.5em; font-weight: bold; color: #c0392b; }
+  .stat-item .lbl { font-size: 0.75em; color: #8b7355; margin-top: 4px; }
+
+  /* === Slider === */
+  .slider-group { margin: 10px 0; }
+  .slider-group label { display: flex; justify-content: space-between; font-size: 0.85em; color: #6b5a44; }
+  .slider-group input[type=range] {
+    width: 100%; margin-top: 6px; accent-color: #ee5a24;
+  }
+
+  /* === Distribution Chart === */
+  .chart-area {
+    background: #fffdf7; border-radius: 12px; padding: 16px;
+    margin: 14px 0; position: relative;
+    border: 1px solid #f0d9a0;
+  }
+  .chart-area canvas { width: 100%; height: 180px; display: block; }
+
+  /* === Decision Panel === */
+  .decision-panel {
+    display: flex; gap: 14px; flex-wrap: wrap; margin: 14px 0;
+    justify-content: center;
+  }
+  .decision-btn {
+    flex: 1; min-width: 140px; padding: 16px;
+    border-radius: 12px; border: 2px solid transparent;
+    font-size: 0.95em; font-weight: bold; cursor: pointer;
+    transition: all 0.25s;
+    text-align: center; font-family: inherit;
+  }
+  .decision-btn.reject {
+    background: rgba(238,90,36,0.08); border-color: #ee5a24; color: #c0392b;
+  }
+  .decision-btn.reject:hover { background: rgba(238,90,36,0.2); }
+  .decision-btn.accept {
+    background: rgba(39,174,96,0.08); border-color: #27ae60; color: #1e8449;
+  }
+  .decision-btn.accept:hover { background: rgba(39,174,96,0.2); }
+
+  /* === Result Modal === */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .overlay.active { display: flex; }
+  .modal {
+    background: #fffdf7; border-radius: 16px; padding: 30px; max-width: 620px; max-height: 85vh; overflow-y: auto;
+    text-align: center; border: 3px solid #ee5a24; animation: popIn 0.35s ease-out;
+    color: #3d2c1e;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .modal .result-icon { font-size: 4em; margin-bottom: 10px; }
+  .modal h3 { font-size: 1.4em; margin-bottom: 8px; }
+  .modal p { color: #5a4636; line-height: 1.6; margin-bottom: 16px; }
+
+  /* === Score === */
+  .score-bar {
+    display: flex; justify-content: center; gap: 40px; margin: 10px 0;
+    font-size: 0.9em;
+  }
+  .score-bar span { color: #c0392b; font-weight: bold; }
+
+  /* === Tutorial tooltip === */
+  .tip {
+    background: #fff9ef; border: 2px solid #feca57;
+    border-radius: 8px; padding: 10px 14px; font-size: 0.8em;
+    color: #7a5d2e; margin-top: 10px;
+  }
+
+  .round-info { text-align: center; font-size: 0.85em; color: #8b7355; margin-bottom: 8px; }
+  .highlight { color: #c0392b; font-weight: bold; }
+  .green { color: #27ae60; }
+  .yellow { color: #d4a017; }
+
+  footer { text-align: center; font-size: 0.75em; color: #b8a088; padding: 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔍 假设检验大侦探 <span class="badge">统计学游戏</span></h1>
+</div>
+
+<div class="share-panel" id="sharePanel">
+  <img class="qr-code" id="qrCodeImg" src="qr_code.png" alt="QR码" style="width:110px;height:110px;border-radius:8px;border:2px solid #f0d9a0">
+  <div class="share-info">
+    <span class="share-label">📱 <strong>手机扫码即可打开</strong>（任何网络都行）</span><br>
+    <span class="share-url" id="shareUrl">https://b6b9b057a28161.lhr.life/index.html</span><br>
+    <span style="font-size:0.75em;color:#8b7355">二维码为固定图片，链接不变则一直有效</span>
+    <br><button class="btn btn-secondary" id="btnCopyUrl" style="font-size:0.7em;padding:4px 10px;margin-top:4px">📋 复制链接</button>
+    <span id="copyMsg" style="font-size:0.7em;color:#27ae60;display:none;margin-left:6px">已复制!</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ====== Round 1: Cookie Factory ====== -->
+  <div class="scene-card" id="scene1">
+    <h2><span class="icon">🍪</span> 第一关：饼干工厂 — 学习基本概念</h2>
+
+    <div class="story-box">
+      <p><span class="emoji-big">🏭</span> 你是<strong>妙脆饼干工厂</strong>的质检侦探！</p>
+      <p>机器设定每块饼干含 <strong>10颗</strong> 巧克力豆。最近老板怀疑机器<strong>可能出问题了</strong>——饼干里的巧克力豆数可能不是10了。</p>
+      <p style="color:#8b7355;margin-top:6px;font-size:0.9em">
+        📌 <strong>原假设 H₀</strong>：机器正常，平均巧克力豆 = 10颗<br>
+        📌 <strong>备择假设 H₁</strong>：机器异常，平均巧克力豆 ≠ 10颗
+      </p>
+    </div>
+
+    <div class="round-info" id="round1-hint">🎲 抽取饼干样本，看看巧克力豆数量……</div>
+
+    <div class="cookie-row" id="cookieJar"></div>
+
+    <div class="stats-panel">
+      <div class="stat-item">
+        <div class="val" id="sampleMean">-</div>
+        <div class="lbl">样本均值 X̄</div>
+      </div>
+      <div class="stat-item">
+        <div class="val" id="sampleSize">0</div>
+        <div class="lbl">样本量 n</div>
+      </div>
+      <div class="stat-item">
+        <div class="val" id="tValue">-</div>
+        <div class="lbl">t 统计量</div>
+      </div>
+      <div class="stat-item">
+        <div class="val" id="pValue">-</div>
+        <div class="lbl">p 值</div>
+      </div>
+    </div>
+
+    <div class="chart-area">
+      <canvas id="distChart1"></canvas>
+    </div>
+
+    <div class="slider-group">
+      <label>⚖️ 显著性水平 α（你愿意承受的误判风险）<span id="alphaLabel">α = 0.05</span></label>
+      <input type="range" id="alphaSlider" min="1" max="10" value="5" step="1">
+    </div>
+
+    <div class="decision-panel">
+      <button class="decision-btn reject" id="btnReject1" disabled>
+        🚨 拒绝 H₀<br><small>判定机器出故障了</small>
+      </button>
+      <button class="decision-btn accept" id="btnAccept1" disabled>
+        ✅ 不拒绝 H₀<br><small>证据不足，维持机器正常</small>
+      </button>
+    </div>
+
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn btn-primary" id="btnSample1">🍪 抽一枚饼干</button>
+      <button class="btn btn-secondary" id="btnSample5">🍪🍪 抽5枚（快速）</button>
+      <button class="btn btn-warn" id="btnReset1">🔄 新案件</button>
+    </div>
+    <div class="tip" id="tip1">💡 <strong>提示：</strong>至少需要<strong>2枚</strong>饼干才能计算 t 统计量和 p 值（需要计算标准差）。样本量越大，结论越可靠！</div>
+  </div>
+
+  <!-- ====== Round 2: Error Types ====== -->
+  <div class="scene-card" id="scene2" style="display:none">
+    <h2><span class="icon">⚡</span> 第二关：两类错误 — 误判的代价</h2>
+    <div class="story-box">
+      <p>作为侦探，你可能会犯<strong>两种错误</strong>：</p>
+      <p>🔴 <strong style="color:#ee5a24">第I类错误（弃真）</strong>：机器明明正常，你却把它停了 → 损失💰停产费</p>
+      <p>🟡 <strong style="color:#feca57">第II类错误（存伪）</strong>：机器坏了，你却没发现 → 顾客吃到问题饼干😡</p>
+      <p style="color:#8b7355;margin-top:6px;font-size:0.9em">下面你将面对<strong>多个案件</strong>——有些机器正常，有些真的坏了。试试看你能做对多少判断？</p>
+    </div>
+
+    <div class="round-info" id="round2-hint">🕵️ 案件 #1 — 先抽样本收集证据……</div>
+    <div class="cookie-row" id="cookieJar2"></div>
+
+    <div class="stats-panel">
+      <div class="stat-item"><div class="val" id="sampleMean2">-</div><div class="lbl">样本均值</div></div>
+      <div class="stat-item"><div class="val" id="sampleSize2">0</div><div class="lbl">样本量</div></div>
+      <div class="stat-item"><div class="val" id="pValue2">-</div><div class="lbl">p 值</div></div>
+      <div class="stat-item"><div class="val" id="alphaVal2">0.05</div><div class="lbl">显著性水平 α</div></div>
+      <div class="stat-item"><div class="val" id="truthHidden">❓</div><div class="lbl">真相（结案后揭示）</div></div>
+    </div>
+
+    <div class="slider-group">
+      <label>⚖️ 显著性水平 α（你愿意承受的误判风险）<span id="alphaLabel2">α = 0.05</span></label>
+      <input type="range" id="alphaSlider2" min="1" max="10" value="5" step="1">
+    </div>
+
+    <div class="decision-panel">
+      <button class="decision-btn reject" id="btnReject2" disabled>🚨 拒绝 H₀（判机器故障）</button>
+      <button class="decision-btn accept" id="btnAccept2" disabled>✅ 不拒绝 H₀（维持正常）</button>
+    </div>
+
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn btn-primary" id="btnSample2">抽取样本</button>
+      <button class="btn btn-warn" id="btnReset2">🔄 下一个案件</button>
+    </div>
+
+    <div class="score-bar">
+      <span>✅ 正确：<span class="green" id="correctCount">0</span></span>
+      <span>❌ 第I类错误：<span style="color:#ee5a24" id="type1Count">0</span></span>
+      <span>⚠️ 第II类错误：<span style="color:#feca57" id="type2Count">0</span></span>
+      <span>📋 总案件：<span id="totalCases">0</span></span>
+    </div>
+    <div class="tip" id="tip2">💡 <strong>提示：</strong>真相是隐藏的！抽取样本 → 观察 p 值 → 对比你设定的 α → 做出判断。试试调整 α 看有什么变化！</div>
+  </div>
+
+  <!-- ====== Round 3: Power & Sample Size ====== -->
+  <div class="scene-card" id="scene3" style="display:none">
+    <h2><span class="icon">🔬</span> 第三关：检验功效 — 样本量的重要性</h2>
+    <div class="story-box">
+      <p>机器<strong style="color:#ee5a24">可能坏了，也可能正常</strong>——真相是随机的（70%概率坏了）。</p>
+      <p>🔑 <strong>关键问题：</strong>如果机器真的坏了（偏离了10），要抽多少个样本才有足够把握（功效）检测出来？如果机器正常，你能避免误判吗？</p>
+      <p style="color:#8b7355;font-size:0.9em">拖动效应量滑块改变偏离程度，抽取不同数量的样本，观察 p 值如何变化。</p>
+    </div>
+
+    <div class="slider-group">
+      <label>📏 效应量（机器偏离真实均值的程度）<span id="effectLabel">偏离 = 1.5 颗</span></label>
+      <input type="range" id="effectSlider" min="5" max="30" value="15" step="1">
+    </div>
+
+    <div class="round-info" id="round3-hint">🔬 调整效应量和样本量，探索检验功效……</div>
+    <div class="cookie-row" id="cookieJar3"></div>
+
+    <div class="stats-panel">
+      <div class="stat-item"><div class="val" id="sampleMean3">-</div><div class="lbl">样本均值</div></div>
+      <div class="stat-item"><div class="val" id="sampleSize3">0</div><div class="lbl">样本量 n</div></div>
+      <div class="stat-item"><div class="val" id="pValue3">-</div><div class="lbl">p 值</div></div>
+      <div class="stat-item"><div class="val" id="powerEst">-</div><div class="lbl">估计功效 power</div></div>
+    </div>
+
+    <div class="chart-area">
+      <canvas id="distChart3"></canvas>
+    </div>
+
+    <div class="decision-panel">
+      <button class="decision-btn reject" id="btnReject3" disabled>🚨 拒绝 H₀</button>
+      <button class="decision-btn accept" id="btnAccept3" disabled>✅ 不拒绝 H₀</button>
+    </div>
+
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn btn-primary" id="btnSample3">抽取样本</button>
+      <button class="btn btn-success" id="btnAutoTest">🤖 自动检验（批量模拟）</button>
+      <button class="btn btn-warn" id="btnReset3">🔄 重置</button>
+    </div>
+    <div class="tip" id="tip3">💡 <strong>提示：</strong>效应量越小或样本量越小，越难检测出真实差异（功效越低）。用「🤖 自动检验」批量模拟，感受功效的概念！每次点「🔄 重置」机器状态会随机变化。</div>
+  </div>
+
+  <!-- ====== Summary ====== -->
+  <div class="scene-card" id="sceneSummary" style="display:none">
+    <h2><span class="icon">🏆</span> 案件总结 — 假设检验核心原理</h2>
+    <div class="story-box" style="line-height:2">
+      <p>🎯 <strong>1. 小概率反证法：</strong>先假设 H₀ 成立 → 看样本是否"太离谱" → 离谱就推翻 H₀</p>
+      <p>⚖️ <strong>2. 显著性水平 α：</strong>你愿意承受的"冤枉好人"风险上限（通常 0.05）</p>
+      <p>📊 <strong>3. p 值：</strong>在 H₀ 成立时，观察到当前或更极端结果的概率</p>
+      <p>🚨 <strong>4. 决策规则：</strong>p < α → 拒绝 H₀；p ≥ α → 不拒绝 H₀</p>
+      <p>🔴 <strong>5. 第I类错误（α）：</strong>H₀ 真却被拒——"冤枉好人"</p>
+      <p>🟡 <strong>6. 第II类错误（β）：</strong>H₀ 假却被接受——"放过坏人"</p>
+      <p>💪 <strong>7. 检验功效（1-β）：</strong>当 H₀ 确实为假时，成功拒绝它的概率</p>
+      <p>📏 <strong>8. 样本量越大</strong> → 标准误越小 → 更容易检测出真实差异</p>
+      <p>🔑 <strong>9. "不拒绝 ≠ 接受"：</strong>只是证据不够充分，不等于证明了 H₀ 为真</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Result Modal -->
+<div class="overlay" id="resultOverlay">
+  <div class="modal" id="resultModal"></div>
+</div>
+
+<footer>🔍 假设检验大侦探 | 统计学互动教学游戏 | 拖动α滑块、抽取样本、做出判断！</footer>
+
+<script>
+// ==================== Game Engine ====================
+
+// --- Shared State ---
+let gameState = {
+  round1: { samples: [], truth: 10, alpha: 0.05 },
+  round2: { samples: [], truth: 10, alpha: 0.05, correct: 0, type1: 0, type2: 0, total: 0, caseActive: false },
+  round3: { samples: [], alpha: 0.05, effectSize: 1.5, truth: 11.5 }
+};
+
+// --- Utility Functions ---
+function sampleCookie(truthMean, sd = 2.5) {
+  // Box-Muller normal approx
+  let u1 = Math.random(), u2 = Math.random();
+  let z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  let raw = truthMean + z * sd;
+  return Math.max(1, Math.round(raw));
+}
+
+function calcTStat(samples, h0mean) {
+  if (samples.length < 2) return null;
+  let n = samples.length;
+  let mean = samples.reduce((a,b)=>a+b,0) / n;
+  let variance = samples.reduce((s,x)=>s+(x-mean)**2, 0) / (n-1);
+  let se = Math.sqrt(variance / n);
+  if (se === 0) return null;
+  return { t: (mean - h0mean) / se, mean, n, se };
+}
+
+function calcPValue(t, df) {
+  // Two-tailed t-test p-value: I_{df/(df+t²)}(df/2, 1/2)
+  if (df <= 0 || !isFinite(t)) return null;
+  let x = df / (df + t*t);
+  // Clamp x to avoid numerical issues at extremes
+  x = Math.max(1e-15, Math.min(1 - 1e-15, x));
+  let p = incompleteBeta(x, df/2, 0.5);
+  // Clamp result to [0, 1]
+  return Math.max(0, Math.min(1, p));
+}
+
+function incompleteBeta(x, a, b) {
+  // Regularized incomplete beta I_x(a,b) via modified Lentz continued fraction
+  // Reference: Cephes / Numerical Recipes
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+
+  // Use symmetry to keep x small for faster convergence
+  if (x > (a + 1) / (a + b + 2)) {
+    return 1 - incompleteBeta(1 - x, b, a);
+  }
+
+  let lbeta = lngamma(a + b) - lngamma(a) - lngamma(b);
+  let front = Math.exp(lbeta + a * Math.log(x) + b * Math.log(1 - x)) / a;
+
+  // Modified Lentz method for CF: 1/(1+ a₁/(1+ a₂/(1+ a₃/(1+ ...))))
+  let tiny = 1e-30;
+  let f = 1, c = 1;
+  let d = 1 - (a + b) * x / (a + 1);
+  if (Math.abs(d) < tiny) d = tiny;
+  d = 1 / d;
+  f = d;
+
+  let delta;
+  for (let m = 1; m <= 200; m++) {
+    let m2 = 2 * m;
+
+    // d_{2m-1}: m*(b-m)*x / [(a+2m-1)*(a+2m)]
+    let term = m * (b - m) * x / ((a + m2 - 1) * (a + m2));
+    d = 1 + term * d;
+    if (Math.abs(d) < tiny) d = tiny;
+    d = 1 / d;
+    c = 1 + term / c;
+    if (Math.abs(c) < tiny) c = tiny;
+    f *= c * d;
+
+    // d_{2m}: -(a+m)*(a+b+m)*x / [(a+2m)*(a+2m+1)]
+    term = -(a + m) * (a + b + m) * x / ((a + m2) * (a + m2 + 1));
+    d = 1 + term * d;
+    if (Math.abs(d) < tiny) d = tiny;
+    d = 1 / d;
+    c = 1 + term / c;
+    if (Math.abs(c) < tiny) c = tiny;
+    delta = c * d;
+    f *= delta;
+
+    if (Math.abs(delta - 1) < 1e-12) break;
+  }
+
+  let result = front * f;
+  if (!isFinite(result)) result = 0;
+  return Math.max(0, Math.min(1, result));
+}
+
+function lngamma(z) {
+  let c = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+           -1.231739572450155, 1.208650973866179e-3, -5.395239384953e-6];
+  let x = z, y = z, tmp = x + 5.5;
+  tmp -= (x + 0.5) * Math.log(tmp);
+  let ser = 1.000000000190015;
+  for (let j = 0; j < 6; j++) ser += c[j] / ++y;
+  return -tmp + Math.log(2.5066282746310005 * ser / x);
+}
+
+function estimatePower(effectSize, n, alpha, sd = 2.5) {
+  let se = sd / Math.sqrt(n);
+  let z_alpha2 = normalQuantile(1 - alpha/2);
+  let ncp = effectSize / se; // non-centrality parameter
+  let power = 1 - normalCDF(z_alpha2 - ncp) + normalCDF(-z_alpha2 - ncp);
+  return Math.max(0, Math.min(1, power));
+}
+
+function normalCDF(x) {
+  let a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429;
+  let p=0.3275911, sign = x < 0 ? -1 : 1;
+  x = Math.abs(x) / Math.sqrt(2);
+  let t = 1/(1 + p*x);
+  let y = 1 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*Math.exp(-x*x);
+  return 0.5*(1 + sign*y);
+}
+
+function normalQuantile(p) {
+  if (p <= 0) return -Infinity;
+  if (p >= 1) return Infinity;
+  if (p > 0.5) return -normalQuantile(1-p);
+  let a=[-3.969683028665376e1,2.209460984245205e2,-2.759285104469687e2,
+         1.383577518672690e2,-3.066479806614716e1,2.506628277459239e0];
+  let b=[-5.447609879822406e1,1.615858368580409e2,-1.556989798598866e2,
+         6.680131188771972e1,-1.328068155288572e1,1e0];
+  let c=[-7.784894002430293e-3,-3.223964580411365e-1,-2.400758277161838e0,
+         -2.549732539343734e0,4.374664141464968e0,2.938163982698783e0];
+  let d=[7.784695709041462e-3,3.224671290700398e-1,2.445134137142996e0,
+         3.754408661907416e0,1e0];
+  let q = p - 0.5;
+  if (Math.abs(q) <= 0.425) {
+    let r = 0.180625 - q*q;
+    return q*((((((a[5]*r + a[4])*r + a[3])*r + a[2])*r + a[1])*r + a[0]) /
+              (((((b[5]*r + b[4])*r + b[3])*r + b[2])*r + b[1])*r + 1));
+  } else {
+    let r = q < 0 ? p : 1-p;
+    r = Math.sqrt(-Math.log(r));
+    let val = (((((c[5]*r + c[4])*r + c[3])*r + c[2])*r + c[1])*r + c[0]) /
+              ((((d[4]*r + d[3])*r + d[2])*r + d[1])*r + 1);
+    return q < 0 ? -val : val;
+  }
+}
+
+// --- Drawing Functions ---
+function drawDistributionChart(canvasId, tStat, df, alpha) {
+  let canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  let ctx = canvas.getContext('2d');
+  let w = canvas.width = canvas.parentElement.clientWidth - 32;
+  let h = canvas.height = 180;
+  ctx.clearRect(0, 0, w, h);
+
+  let margin = { left: 50, right: 30, top: 20, bottom: 30 };
+  let pw = w - margin.left - margin.right;
+  let ph = h - margin.top - margin.bottom;
+
+  let xMin = -4.5, xMax = 4.5;
+  let toX = (v) => margin.left + ((v - xMin) / (xMax - xMin)) * pw;
+
+  // Draw t-distribution curve
+  ctx.beginPath();
+  ctx.strokeStyle = '#b8a088'; ctx.lineWidth = 2;
+  let first = true;
+  for (let px = 0; px < pw; px++) {
+    let x = xMin + (px / pw) * (xMax - xMin);
+    let density = tDensity(x, df);
+    let py = margin.top + ph - density * ph * 3.2;
+    if (first) { ctx.moveTo(toX(x), py); first = false; }
+    else ctx.lineTo(toX(x), py);
+  }
+  ctx.stroke();
+
+  // Shade rejection regions
+  let critVal = normalQuantile(1 - alpha/2);
+  // Left tail
+  shadeRegion(ctx, xMin, -critVal, df, toX, margin, ph, '#ee5a24', 0.35, pw, xMin, xMax);
+  // Right tail
+  shadeRegion(ctx, critVal, xMax, df, toX, margin, ph, '#ee5a24', 0.35, pw, xMin, xMax);
+
+  // Draw t-stat line if available
+  if (tStat !== null && isFinite(tStat)) {
+    let tx = toX(tStat);
+    ctx.beginPath(); ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 2.5;
+    ctx.setLineDash([5,3]);
+    ctx.moveTo(tx, margin.top); ctx.lineTo(tx, margin.top + ph);
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Point
+    ctx.beginPath(); ctx.fillStyle = '#c0392b';
+    ctx.arc(tx, margin.top + ph - tDensity(tStat, df) * ph * 3.2, 5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#3d2c1e'; ctx.font = 'bold 11px Microsoft YaHei';
+    ctx.textAlign = 'center'; ctx.fillText(`t=${tStat.toFixed(2)}`, tx, margin.top-4);
+    ctx.textAlign = 'start';
+  }
+
+  // Axes
+  ctx.strokeStyle = '#d4c5b0'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(margin.left, margin.top+ph); ctx.lineTo(margin.left+pw, margin.top+ph); ctx.stroke();
+  // Labels
+  ctx.fillStyle = '#8b7355'; ctx.font = '10px Microsoft YaHei'; ctx.textAlign = 'center';
+  for (let v = -4; v <= 4; v++) {
+    if (v === 0) continue;
+    ctx.fillText(v.toString(), toX(v), margin.top+ph+16);
+  }
+  ctx.fillText('0', toX(0), margin.top+ph+16);
+
+  // Mark rejection region
+  ctx.fillStyle = '#ee5a24'; ctx.font = '10px Microsoft YaHei';
+  ctx.fillText('拒绝域', toX(-critVal-0.3), margin.top+ph-4);
+  ctx.fillText('拒绝域', toX(critVal+0.3), margin.top+ph-4);
+  ctx.fillStyle = '#27ae60';
+  ctx.fillText('接受域', toX(0), margin.top+ph-4);
+}
+
+function tDensity(x, df) {
+  let c = lngamma((df+1)/2) - lngamma(df/2);
+  return Math.exp(c) / Math.sqrt(df*Math.PI) * Math.pow(1 + x*x/df, -(df+1)/2);
+}
+
+function shadeRegion(ctx, xStart, xEnd, df, toX, margin, ph, color, opacity, pw, xMin, xMax) {
+  ctx.save();
+  ctx.beginPath();
+  let sx = Math.max(xMin, xStart), ex = Math.min(xMax, xEnd);
+  let first = true;
+  for (let px = Math.max(0, ((sx-xMin)/(xMax-xMin))*pw); px <= Math.min(pw, ((ex-xMin)/(xMax-xMin))*pw); px++) {
+    let x = xMin + (px/pw)*(xMax-xMin);
+    let y = margin.top + ph - tDensity(x, df)*ph*3.2;
+    if (first) { ctx.moveTo(toX(x), margin.top+ph); ctx.lineTo(toX(x), y); first=false; }
+    else ctx.lineTo(toX(x), y);
+  }
+  ctx.lineTo(toX(ex), margin.top+ph);
+  ctx.closePath();
+  ctx.fillStyle = color; ctx.globalAlpha = opacity;
+  ctx.fill(); ctx.restore();
+}
+
+// --- Round 1 Logic ---
+function updateRound1() {
+  let s = gameState.round1;
+  let samples = s.samples;
+  let n = samples.length;
+  document.getElementById('sampleSize').textContent = n;
+
+  let result = n >= 2 ? calcTStat(samples, 10) : null;
+  document.getElementById('sampleMean').textContent = n > 0 ? (samples.reduce((a,b)=>a+b,0)/n).toFixed(2) : '-';
+  document.getElementById('tValue').textContent = result ? result.t.toFixed(3) : '-';
+
+  let df = n - 1;
+  let pVal = result ? calcPValue(Math.abs(result.t), df) : null;
+  document.getElementById('pValue').textContent = pVal !== null ? pVal.toFixed(4) : '-';
+
+  let canDecide = n >= 2;
+  document.getElementById('btnReject1').disabled = !canDecide;
+  document.getElementById('btnAccept1').disabled = !canDecide;
+
+  drawDistributionChart('distChart1', result ? result.t : null, Math.max(df, 1), s.alpha);
+}
+
+function drawCookies(containerId, samples) {
+  let container = document.getElementById(containerId);
+  container.innerHTML = samples.map((chips, i) => {
+    let emojis = '🍫'.repeat(Math.min(chips, 8)) + (chips > 8 ? `+${chips-8}`:'');
+    return `<div class="cookie" title="饼干#${i+1}: ${chips}颗巧克力豆">
+      ${chips}<span class="chips">${emojis}</span></div>`;
+  }).join('');
+  if (samples.length === 0) {
+    container.innerHTML = '<div style="color:#b8a088;padding:20px">等待抽取样本……🍪</div>';
+  }
+}
+
+document.getElementById('btnSample1').addEventListener('click', () => {
+  gameState.round1.samples.push(sampleCookie(gameState.round1.truth));
+  drawCookies('cookieJar', gameState.round1.samples);
+  updateRound1();
+  let n = gameState.round1.samples.length;
+  if (n < 2) {
+    document.getElementById('tip1').innerHTML =
+      '💡 <strong>提示：</strong>还需要 <strong>' + (2-n) + '</strong> 枚饼干才能计算 t 值和 p 值（至少需要 2 个样本计算标准差）。继续抽取！';
+  } else {
+    document.getElementById('tip1').innerHTML =
+      '💡 <strong>提示：</strong>观察 p 值！当 p < α=' + gameState.round1.alpha.toFixed(2) + ' 时，说明样本与原假设"显著不符"，可以拒绝 H₀。蓝色竖线是你样本的 t 值位置。';
+  }
+});
+
+document.getElementById('btnSample5').addEventListener('click', () => {
+  for (let i = 0; i < 5; i++)
+    gameState.round1.samples.push(sampleCookie(gameState.round1.truth));
+  drawCookies('cookieJar', gameState.round1.samples);
+  updateRound1();
+});
+
+document.getElementById('alphaSlider').addEventListener('input', function() {
+  gameState.round1.alpha = this.value / 100;
+  document.getElementById('alphaLabel').textContent = `α = ${gameState.round1.alpha.toFixed(2)}`;
+  updateRound1();
+});
+
+function makeDecision(round, decision) {
+  let s = gameState[round];
+  let result = s.samples.length >= 2 ? calcTStat(s.samples, 10) : null;
+  let df = result ? s.samples.length - 1 : 0;
+  let pVal = result ? calcPValue(Math.abs(result.t), df) : null;
+
+  let rejected = decision === 'reject';
+  let truthGood = Math.abs(s.truth - 10) < 0.01;
+  let pBelowAlpha = result && pVal < s.alpha;
+
+  // Build data stats block
+  let statsBlock = '';
+  if (result) {
+    let sd = Math.sqrt(s.samples.reduce((s2,x)=>s2+(x-result.mean)**2,0)/(s.samples.length-1));
+    statsBlock = `
+      <div style="background:#fff9ef;border-radius:8px;padding:10px;margin:8px 0;text-align:left;font-size:0.85em;line-height:1.7">
+        📊 <strong>你的数据：</strong><br>
+        &nbsp;&nbsp;• 样本量 n = <strong>${s.samples.length}</strong> 枚饼干<br>
+        &nbsp;&nbsp;• 样本均值 X̄ = <strong>${result.mean.toFixed(2)}</strong>（H₀：μ=10）<br>
+        &nbsp;&nbsp;• 样本标准差 s = <strong>${sd.toFixed(2)}</strong><br>
+        &nbsp;&nbsp;• 标准误 SE = s/√n = <strong>${result.se.toFixed(3)}</strong><br>
+        &nbsp;&nbsp;• t 统计量 = <strong>${result.t.toFixed(3)}</strong><br>
+        &nbsp;&nbsp;• p 值 = <strong>${pVal.toFixed(4)}</strong> ${pBelowAlpha ? '<span style="color:#ee5a24">← p < α，数据显著偏离 H₀</span>' : '<span style="color:#8b7355">← p ≥ α，数据与 H₀ 无显著差异</span>'}<br>
+        &nbsp;&nbsp;• 你设定的 α = <strong>${s.alpha.toFixed(2)}</strong><br>
+        &nbsp;&nbsp;• <strong>你的判断：${rejected ? '<span style="color:#ee5a24">拒绝 H₀（判机器故障）</span>' : '<span style="color:#27ae60">不拒绝 H₀（维持机器正常）</span>'}</strong>
+      </div>`;
+  }
+
+  let eduBlock = '';
+  let verdict = '', icon = '';
+
+  // --- Judge by user's DECISION vs TRUTH ---
+  if (!result) {
+    verdict = '⚠️ 数据不足'; icon = '🤔';
+    eduBlock = `<p>只有 ${s.samples.length} 个样本，无法计算 t 统计量。<strong>至少需要 2 个样本</strong>才能做假设检验。</p>`;
+  } else if (rejected && !truthGood) {
+    // CORRECT: rejected H₀, and H₀ was indeed false
+    verdict = '✅ 正确！成功拒绝了 H₀'; icon = '🎉';
+    if (pBelowAlpha) {
+      eduBlock = `
+        <p><strong style="color:#27ae60">你的判断正确，且数据分析也支持你的判断。</strong></p>
+        <p>❶ 你抽了 <strong>${s.samples.length}</strong> 枚，样本均值 <strong>${result.mean.toFixed(2)}</strong> 偏离了 H₀ 假设的 10。</p>
+        <p>❷ t 统计量 = <strong>${Math.abs(result.t).toFixed(2)}</strong>，偏离了约 <strong>${Math.abs(result.t).toFixed(1)} 个标准误</strong>——这不是随机波动能解释的。</p>
+        <p>❸ p 值 = <strong>${pVal.toFixed(4)}</strong> < α = ${s.alpha.toFixed(2)} → <strong>小概率反证法：</strong>如果 H₀ 成立，这么极端的数据几乎不可能出现 → 推翻 H₀。</p>
+        <p>❹ 真相：机器确实坏了（μ=${s.truth.toFixed(1)}）✓</p>`;
+    } else {
+      eduBlock = `
+        <p><strong style="color:#27ae60">你的判断碰巧对了，但数据本身并不支持拒绝 H₀。</strong></p>
+        <p>❶ p 值 = <strong>${pVal.toFixed(4)}</strong> ≥ α = ${s.alpha.toFixed(2)}，按决策规则其实<strong>不该拒绝 H₀</strong>。</p>
+        <p>❷ 但真相是机器确实坏了（μ=${s.truth.toFixed(1)}）。你靠直觉猜对了，但这在统计上是不严谨的——<strong>应该依据 p 值和 α 做决策</strong>，而不是靠感觉。</p>
+        <p>❸ 样本量 n=${s.samples.length} 可能偏小，导致功效不足，p 值偏高。增大 n 可能让 p 值降到 α 以下。</p>`;
+    }
+  } else if (!rejected && truthGood) {
+    // CORRECT: didn't reject H₀, and H₀ was indeed true
+    verdict = '✅ 正确！没有拒绝 H₀'; icon = '👍';
+    if (!pBelowAlpha) {
+      eduBlock = `
+        <p><strong style="color:#27ae60">你的判断正确，数据分析也支持。</strong></p>
+        <p>❶ 样本均值 <strong>${result.mean.toFixed(2)}</strong> 与 H₀ 假设的 10 很接近，t = <strong>${Math.abs(result.t).toFixed(2)}</strong>，偏离很小。</p>
+        <p>❷ p 值 = <strong>${pVal.toFixed(4)}</strong> ≥ α = ${s.alpha.toFixed(2)} → 即使 H₀ 成立，这样的样本也很常见 → <strong>证据不足，不能推翻 H₀</strong>。</p>
+        <p>❸ 机器确实正常（μ=10）✓<br>🔑 <strong>重要：</strong>这不叫"接受 H₀"，只是"不拒绝 H₀"——就像法庭上证据不足不等于证明被告无罪。</p>`;
+    } else {
+      eduBlock = `
+        <p><strong style="color:#27ae60">你的判断碰巧对了，但数据其实指向拒绝 H₀。</strong></p>
+        <p>❶ p 值 = <strong>${pVal.toFixed(4)}</strong> < α = ${s.alpha.toFixed(2)}，按决策规则<strong>应该拒绝 H₀</strong>。</p>
+        <p>❷ 但你选择了不拒绝。真相是机器正常（μ=10），所以你侥幸对了。然而统计检验的逻辑是：<strong>当 p < α 时应当拒绝</strong>，否则你就在无视数据给出的信号。</p>`;
+    }
+  } else if (rejected && truthGood) {
+    // TYPE I ERROR: rejected H₀ but H₀ was true
+    verdict = '❌ 第 I 类错误（弃真）'; icon = '😰';
+    if (pBelowAlpha) {
+      eduBlock = `
+        <p><strong style="color:#ee5a24">你按规则拒绝了 H₀，但这次是"冤案"。</strong></p>
+        <p>❶ 机器<strong>实际上是正常的</strong>（μ=10），但样本均值 <strong>${result.mean.toFixed(2)}</strong> 恰好偏离较大——纯属<strong>抽样偶然性</strong>。</p>
+        <p>❷ p 值 = <strong>${pVal.toFixed(4)}</strong> < α = ${s.alpha.toFixed(2)}，触发了拒绝。</p>
+        <p>❸ <strong>这正是 α 的含义：</strong>设 α=0.05 意味着即使 H₀ 为真，也有约 <strong>5%</strong> 的概率因运气不好抽到"极端样本"而错误拒绝。你这次就碰上了那 5%。</p>
+        <p>🔑 <em>α 越小 → 第 I 类错误越少，但第 II 类错误风险上升（权衡！）。</em></p>`;
+    } else {
+      eduBlock = `
+        <p><strong style="color:#ee5a24">数据不支持拒绝，但你拒绝了——结果错了。</strong></p>
+        <p>❶ p 值 = <strong>${pVal.toFixed(4)}</strong> ≥ α = ${s.alpha.toFixed(2)}，数据<strong>没有给出拒绝 H₀ 的信号</strong>。</p>
+        <p>❷ 但你执意拒绝了，而真相是机器正常（μ=10）。你同时犯了两个错误：<strong>无视了 p 值与 α 的比较规则</strong>，并且冤枉了正常机器。</p>
+        <p>🔑 <em>假设检验中，决策应严格遵循 p < α → 拒绝，p ≥ α → 不拒绝。</em></p>`;
+    }
+  } else if (!rejected && !truthGood) {
+    // TYPE II ERROR: didn't reject H₀ but H₀ was false
+    verdict = '⚠️ 第 II 类错误（存伪）'; icon = '😟';
+    let powerEst = s.samples.length >= 2 ? estimatePower(Math.abs(s.truth-10), s.samples.length, s.alpha) : 0;
+    if (!pBelowAlpha) {
+      eduBlock = `
+        <p><strong style="color:#feca57">你按规则没有拒绝 H₀，但机器其实坏了——"漏网之鱼"。</strong></p>
+        <p>❶ 机器<strong>其实坏了</strong>（μ=${s.truth.toFixed(1)} ≠ 10），但样本均值 <strong>${result.mean.toFixed(2)}</strong> 和真实值的偏离被<strong>抽样误差淹没了</strong>（SE=${result.se.toFixed(3)}）。</p>
+        <p>❷ p 值 = <strong>${pVal.toFixed(4)}</strong> ≥ α = ${s.alpha.toFixed(2)}，触发了"不拒绝"。</p>
+        <p>❸ <strong>为什么没检测出来？</strong>你只抽了 ${s.samples.length} 枚，检验功效仅约 <strong>${(powerEst*100).toFixed(0)}%</strong>。样本量太小 → 标准误大 → 真实差异被噪声掩盖。</p>
+        <p>❹ 解决方法：<strong>增大样本量 n</strong>（减小 SE），或放宽 α（但要承受更多第 I 类错误）。</p>
+        <p>🔑 <em>样本量是检验功效的关键：n 越大，越容易检测出真实差异。</em></p>`;
+    } else {
+      eduBlock = `
+        <p><strong style="color:#feca57">数据支持拒绝，但你选择了不拒绝——结果错了。</strong></p>
+        <p>❶ p 值 = <strong>${pVal.toFixed(4)}</strong> < α = ${s.alpha.toFixed(2)}，数据<strong>明确发出了"拒绝 H₀"的信号</strong>。</p>
+        <p>❷ 但你选择了不拒绝。真相是机器坏了（μ=${s.truth.toFixed(1)}），你放过了有问题的机器。</p>
+        <p>❸ 当 p < α 时，应果断拒绝 H₀。否则就是在忽视统计证据。</p>`;
+    }
+  }
+
+  let detail = statsBlock + eduBlock;
+
+  // Round-specific post-processing
+  if (round === 'round2') {
+    s.total++;
+    if (rejected && truthGood) s.type1++;
+    else if (rejected && !truthGood) s.correct++;
+    else if (!rejected && truthGood) s.correct++;
+    else s.type2++;
+
+    document.getElementById('correctCount').textContent = s.correct;
+    document.getElementById('type1Count').textContent = s.type1;
+    document.getElementById('type2Count').textContent = s.type2;
+    document.getElementById('totalCases').textContent = s.total;
+    document.getElementById('truthHidden').textContent = `μ=${s.truth.toFixed(1)}`;
+  }
+
+  showResult(verdict, icon, detail);
+
+  if (round === 'round2') {
+    document.getElementById('btnReject2').disabled = true;
+    document.getElementById('btnAccept2').disabled = true;
+    document.getElementById('btnSample2').disabled = true;
+    document.getElementById('btnReset2').style.animation = 'pulse 0.6s ease-in-out 3';
+  }
+}
+
+function showResult(verdict, icon, detail) {
+  document.getElementById('resultModal').innerHTML = `
+    <div class="result-icon">${icon}</div>
+    <h3>${verdict}</h3>
+    <p>${detail}</p>
+    <button class="btn btn-primary" onclick="document.getElementById('resultOverlay').classList.remove('active')">
+      知道了！
+    </button>
+  `;
+  document.getElementById('resultOverlay').classList.add('active');
+}
+
+document.getElementById('btnReject1').addEventListener('click', () => makeDecision('round1', 'reject'));
+document.getElementById('btnAccept1').addEventListener('click', () => makeDecision('round1', 'accept'));
+document.getElementById('btnReject2').addEventListener('click', () => makeDecision('round2', 'reject'));
+document.getElementById('btnAccept2').addEventListener('click', () => makeDecision('round2', 'accept'));
+document.getElementById('btnReject3').addEventListener('click', () => makeDecision('round3', 'reject'));
+document.getElementById('btnAccept3').addEventListener('click', () => makeDecision('round3', 'accept'));
+
+document.getElementById('btnReset1').addEventListener('click', () => {
+  // Randomize whether machine is really broken
+  let broken = Math.random() > 0.5;
+  gameState.round1.samples = [];
+  gameState.round1.truth = broken ? 10 + (Math.random() > 0.5 ? 1 : -1) * (1.5 + Math.random() * 2) : 10;
+  drawCookies('cookieJar', []);
+  updateRound1();
+  document.getElementById('round1-hint').innerHTML = broken
+    ? '🤫 （悄悄告诉你：这轮机器<strong style="color:#ee5a24">真的坏了</strong>，试试能不能检测出来！）'
+    : '🤫 （悄悄告诉你：这轮机器<strong style="color:#27ae60">是正常的</strong>，小心别犯第I类错误！）';
+  document.getElementById('tip1').innerHTML = '💡 <strong>提示：</strong>至少需要<strong>2枚</strong>饼干才能计算 t 统计量和 p 值（需要计算标准差）。样本量越大，结论越可靠！';
+  document.getElementById('tip1').innerHTML = '💡 <strong>提示：</strong>先多抽些饼干积累证据，观察 p 值的变化，再做出你的判断！';
+});
+
+document.getElementById('btnReset2').addEventListener('click', () => {
+  let broken = Math.random() > 0.4;
+  gameState.round2.samples = [];
+  gameState.round2.truth = broken ? 10 + (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 2.5) : 10;
+  gameState.round2.caseActive = true;
+  drawCookies('cookieJar2', []);
+  updateRound2Display();
+  document.getElementById('btnSample2').disabled = false;
+  document.getElementById('btnReject2').disabled = true;
+  document.getElementById('btnAccept2').disabled = true;
+  document.getElementById('round2-hint').textContent =
+    `🕵️ 案件 #${gameState.round2.total + 1} — 先抽样本收集证据……`;
+  document.getElementById('truthHidden').textContent = '❓';
+  document.getElementById('btnReset2').style.animation = 'none';
+});
+
+function updateRound2Display() {
+  let s = gameState.round2;
+  let samples = s.samples;
+  let n = samples.length;
+  document.getElementById('sampleSize2').textContent = n;
+  let meanVal = n > 0 ? (samples.reduce((a,b)=>a+b,0)/n) : NaN;
+  document.getElementById('sampleMean2').textContent = n > 0 ? meanVal.toFixed(2) : '-';
+  let result = n >= 2 ? calcTStat(samples, 10) : null;
+  let pVal = result ? calcPValue(Math.abs(result.t), n-1) : null;
+  document.getElementById('pValue2').textContent = pVal !== null ? pVal.toFixed(4) : '-';
+  document.getElementById('alphaVal2').textContent = s.alpha.toFixed(2);
+  document.getElementById('alphaLabel2').textContent = `α = ${s.alpha.toFixed(2)}`;
+  let canDecide = n >= 2;
+  document.getElementById('btnReject2').disabled = !canDecide;
+  document.getElementById('btnAccept2').disabled = !canDecide;
+}
+
+document.getElementById('btnSample2').addEventListener('click', () => {
+  gameState.round2.samples.push(sampleCookie(gameState.round2.truth));
+  drawCookies('cookieJar2', gameState.round2.samples);
+  updateRound2Display();
+});
+
+document.getElementById('alphaSlider2').addEventListener('input', function() {
+  gameState.round2.alpha = this.value / 100;
+  document.getElementById('alphaLabel2').textContent = `α = ${gameState.round2.alpha.toFixed(2)}`;
+  document.getElementById('alphaVal2').textContent = gameState.round2.alpha.toFixed(2);
+  updateRound2Display();
+});
+
+// --- Round 3 Logic ---
+function updateRound3Display() {
+  let s = gameState.round3;
+  let n = s.samples.length;
+  document.getElementById('sampleSize3').textContent = n;
+  document.getElementById('sampleMean3').textContent = n > 0 ? (s.samples.reduce((a,b)=>a+b,0)/n).toFixed(2) : '-';
+  let result = n >= 2 ? calcTStat(s.samples, 10) : null;
+  let pVal = result ? calcPValue(Math.abs(result.t), n-1) : null;
+  document.getElementById('pValue3').textContent = pVal !== null ? pVal.toFixed(4) : '-';
+  document.getElementById('powerEst').textContent = n >= 2 ? (estimatePower(s.effectSize, n, s.alpha)*100).toFixed(0) + '%' : '-';
+  let canDecide = n >= 2;
+  document.getElementById('btnReject3').disabled = !canDecide;
+  document.getElementById('btnAccept3').disabled = !canDecide;
+
+  let tStatVal = result ? result.t : null;
+  let dfVal = n - 1;
+  drawDistributionChart('distChart3', tStatVal, Math.max(dfVal, 1), s.alpha);
+}
+
+document.getElementById('btnSample3').addEventListener('click', () => {
+  gameState.round3.samples.push(sampleCookie(gameState.round3.truth));
+  drawCookies('cookieJar3', gameState.round3.samples);
+  updateRound3Display();
+});
+
+document.getElementById('effectSlider').addEventListener('input', function() {
+  let val = this.value / 10;
+  gameState.round3.effectSize = val;
+  gameState.round3.truth = 10 + val;
+  document.getElementById('effectLabel').textContent = `偏离 = ${val.toFixed(1)} 颗`;
+  gameState.round3.samples = [];
+  drawCookies('cookieJar3', []);
+  updateRound3Display();
+});
+
+function randomizeRound3() {
+  let s = gameState.round3;
+  // 70% chance machine is broken (to focus on power), 30% normal
+  let broken = Math.random() < 0.7;
+  let val = s.effectSize;
+  s.truth = broken ? 10 + val : 10;
+  s.samples = [];
+  drawCookies('cookieJar3', []);
+  updateRound3Display();
+
+  let hintEl = document.getElementById('round3-hint');
+  if (broken) {
+    hintEl.innerHTML = '🤫 机器<strong style="color:#ee5a24">确实坏了</strong>（偏离=' + val.toFixed(1) + '）。你能用足够样本检测出来吗？——这就是<strong>检验功效</strong>的体现！';
+  } else {
+    hintEl.innerHTML = '🤫 机器<strong style="color:#27ae60">其实是正常的</strong>。小心别被抽样波动误导，犯第I类错误！';
+  }
+}
+
+document.getElementById('btnReset3').addEventListener('click', randomizeRound3);
+
+document.getElementById('btnAutoTest').addEventListener('click', () => {
+  let s = gameState.round3;
+  let results = { reject: 0, total: 0 };
+  let simCount = 100;
+  let brokenTruth = 10 + s.effectSize; // Always test with broken machine for power analysis
+
+  for (let sim = 0; sim < simCount; sim++) {
+    let batchSamples = [];
+    let batchSize = 5 + Math.floor(Math.random() * 15);
+    for (let i = 0; i < batchSize; i++) {
+      batchSamples.push(sampleCookie(brokenTruth));
+    }
+    let result = calcTStat(batchSamples, 10);
+    if (result) {
+      let pVal = calcPValue(Math.abs(result.t), batchSize - 1);
+      results.total++;
+      if (pVal < s.alpha) results.reject++;
+    }
+  }
+
+  let powerObserved = results.total > 0 ? (results.reject / results.total * 100).toFixed(0) : 0;
+  let powerTheoretical = (estimatePower(s.effectSize, 10, s.alpha) * 100).toFixed(0);
+
+  showResult('📊 批量模拟结果', '🤖',
+    `进行了 <strong>${simCount}</strong> 次模拟检验<br>
+    成功拒绝 H₀：<strong style="color:#27ae60">${results.reject}/${results.total}</strong>（约 ${powerObserved}%）<br>
+    理论功效（n≈10）：约 ${powerTheoretical}%<br><br>
+    <small style="color:#8b7355">效应量=${s.effectSize.toFixed(1)}, α=${s.alpha.toFixed(2)}<br>
+    效应量越大 / 样本量越大 → 功效越高 → 越容易发现真实差异</small>`
+  );
+});
+
+// --- Tab Navigation ---
+let currentRound = 1;
+
+function showRound(n) {
+  document.querySelectorAll('.scene-card').forEach((el, i) => {
+    if (i === 0 && n === 1) el.style.display = '';
+    else if (i === 1 && n === 2) el.style.display = '';
+    else if (i === 2 && n === 3) el.style.display = '';
+    else if (i === 3 && n === 4) el.style.display = '';
+    else if (i >= 4) return;
+    else el.style.display = 'none';
+  });
+  currentRound = n;
+}
+
+// ==================== QR Code Generator ====================
+// Self-contained QR code generator (byte mode, EC level M)
+function generateQRCode(canvasId, text) {
+  let canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  let ctx = canvas.getContext('2d');
+  let size = canvas.width;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
+
+  // ---- GF(2^8) tables ----
+  let exp = new Int32Array(512), log = new Int32Array(256);
+  for (let i = 0, x = 1; i < 255; i++) { exp[i] = x; exp[i + 255] = x; log[x] = i; x <<= 1; if (x & 256) x ^= 285; }
+  log[1] = 0;
+
+  function gfMul(a, b) { return (a && b) ? exp[log[a] + log[b]] : 0; }
+
+  // ---- Determine version ----
+  let dataLen = text.length;
+  let version = 1;
+  let capacities = [0,17,32,53,78,106,134]; // data bytes per version (byte mode, EC M)
+  while (version < 6 && dataLen + 2 > capacities[version]) version++;
+  let totalWords = [0,26,44,70,100,134,172][version];
+  let ecWords = [0,10,16,26,36,48,64][version];
+  let dataWords = totalWords - ecWords;
+  let modules = 17 + version * 4;
+  let matrix = new Array(modules); for (let i = 0; i < modules; i++) matrix[i] = new Int32Array(modules);
+
+  // ---- RS Encoder ----
+  function rsEncode(data, nEC) {
+    let gen = new Int32Array(nEC + 1); gen[0] = 1;
+    for (let i = 0; i < nEC; i++) {
+      for (let j = i; j >= 0; j--) gen[j + 1] ^= gfMul(gen[j], exp[i]);
+    }
+    let res = new Int32Array(data.length + nEC);
+    for (let i = 0; i < data.length; i++) res[i] = data[i];
+    for (let i = 0; i < data.length; i++) {
+      let coef = res[i];
+      if (coef) for (let j = 0; j <= nEC; j++) res[i + j] ^= gfMul(gen[j], coef);
+    }
+    let ec = new Int32Array(nEC);
+    for (let i = 0; i < nEC; i++) ec[i] = res[data.length + i];
+    return ec;
+  }
+
+  // ---- Data encoding (byte mode) ----
+  let bits = [];
+  function addBits(val, n) { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); }
+  addBits(4, 4); // byte mode
+  addBits(dataLen, version < 10 ? 8 : 16);
+  for (let i = 0; i < dataLen; i++) addBits(text.charCodeAt(i), 8);
+  addBits(0, 4); // terminator
+  while (bits.length % 8) bits.push(0);
+  // Pad with 236, 17 alternating
+  let bytes = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j]; bytes.push(b);
+  }
+  let padVal = 236;
+  while (bytes.length < dataWords) { bytes.push(padVal); padVal = padVal === 236 ? 17 : 236; }
+
+  // ---- RS error correction ----
+  let block1Data = Math.floor(dataWords / 1), block1EC = ecWords;
+  let allData = [], allEC = [];
+  for (let b = 0; b < 1; b++) {
+    let block = bytes.slice(b * block1Data, (b + 1) * block1Data);
+    let ec = rsEncode(block, block1EC);
+    allData.push(block); allEC.push(ec);
+  }
+  // Interleave
+  let finalData = [];
+  for (let i = 0; i < block1Data; i++) for (let b = 0; b < 1; b++) if (i < allData[b].length) finalData.push(allData[b][i]);
+  for (let i = 0; i < block1EC; i++) for (let b = 0; b < 1; b++) finalData.push(allEC[b][i]);
+
+  // ---- Matrix placement ----
+  // Finder patterns
+  function placeFinder(r, c) {
+    for (let i = -1; i <= 7; i++) for (let j = -1; j <= 7; j++) {
+      if (r+i >= 0 && r+i < modules && c+j >= 0 && c+j < modules)
+        matrix[r+i][c+j] = (i>=0&&i<=6&&j>=0&&j<=6) ? ((i===0||i===6||j===0||j===6) || (i>=2&&i<=4&&j>=2&&j<=4) ? 1 : 0) : 0;
+    }
+  }
+  placeFinder(0, 0); placeFinder(0, modules - 7); placeFinder(modules - 7, 0);
+  // Timing
+  for (let i = 8; i < modules - 8; i++) { matrix[6][i] = matrix[i][6] = i % 2 === 0 ? 1 : 0; }
+  // Alignment for version >= 2
+  if (version >= 2) {
+    let aligns = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,6,6,6,6,6,6,6,6,6,6,6,6,22,22,22,22,22,22,22,22,22,22,22];
+    let a = aligns[version];
+    for (let ar of [a]) {
+      for (let ac of [a]) {
+        if (!(ar < 9 && ac < 9) && !(ar < 9 && ac > modules-9) && !(ar > modules-9 && ac < 9)) {
+          for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++)
+            if (ar+i >= 0 && ar+i < modules && ac+j >= 0 && ac+j < modules)
+              matrix[ar+i][ac+j] = (i===-2||i===2||j===-2||j===2||(i===0&&j===0)) ? 1 : 0;
+        }
+      }
+    }
+  }
+  // Dark module
+  matrix[modules-8][8] = 1;
+
+  // ---- Place data bits ----
+  let dataIdx = 0;
+  function placeBit(r, c, bit) { if (r >= 0 && r < modules && c >= 0 && c < modules && matrix[r][c] === 0) { matrix[r][c] = bit | 2; } }
+  let col = modules - 1, row, dir = -1;
+  while (col > 0) {
+    if (col === 6) col = 5;
+    for (row = modules - 1; row >= 0; row--) {
+      for (let c = col; c > col - 2; c--) {
+        if (matrix[row][c] === 0 && dataIdx < finalData.length * 8) {
+          let byteIdx = dataIdx >> 3, bitIdx = 7 - (dataIdx & 7);
+          let bit = (finalData[byteIdx] >> bitIdx) & 1;
+          matrix[row][c] = bit | 2;
+          dataIdx++;
+        }
+      }
+    }
+    col -= 2;
+    // Reverse direction each column pair
+    if (col < modules - 2) {
+      let tmp = []; for (let r = 0; r < modules; r++) {
+        for (let cc = col; cc >= 0 && cc > col-2; cc--) tmp.push({r:r,c:cc});
+      }
+      // Alternate direction
+    }
+  }
+  // Simpler: fill in zigzag
+  for (let r = 0; r < modules; r++) for (let c = 0; c < modules; c++) if (matrix[r][c] & 2) matrix[r][c] &= 1;
+
+  // ---- Re-do data placement properly (zigzag) ----
+  // Reset data markers
+  for (let r = 0; r < modules; r++) for (let c = 0; c < modules; c++) if (matrix[r][c] & 2) matrix[r][c] = 0;
+
+  col = modules - 1; row = modules - 1; dir = -1; dataIdx = 0;
+  while (col > 0) {
+    if (col === 6) col = 5;
+    for (; row >= 0 && row < modules; row += dir) {
+      for (let c = col; c > col - 2; c--) {
+        if (c >= 0 && c < modules && matrix[row][c] === 0 && dataIdx < finalData.length * 8) {
+          let bit = (finalData[dataIdx >> 3] >> (7 - (dataIdx & 7))) & 1;
+          matrix[row][c] = bit;
+          dataIdx++;
+        }
+      }
+    }
+    dir = -dir; row += dir; col -= 2;
+  }
+
+  // ---- Mask evaluation and application ----
+  let bestMask = 0, bestScore = Infinity;
+  let masks = [
+    function(r,c) { return (r+c) % 2 === 0; },
+    function(r,c) { return r % 2 === 0; },
+    function(r,c) { return c % 3 === 0; },
+    function(r,c) { return (r+c) % 3 === 0; },
+    function(r,c) { return (Math.floor(r/2)+Math.floor(c/3)) % 2 === 0; },
+    function(r,c) { return ((r*c)%2)+((r*c)%3) === 0; },
+    function(r,c) { return ((r*c)%2+(r*c)%3) % 2 === 0; },
+    function(r,c) { return ((r+c)%2+(r*c)%3) % 2 === 0; }
+  ];
+
+  // For simplicity, apply mask 2 (usually works well)
+  let applyFn = masks[2];
+  for (let r = 0; r < modules; r++) {
+    for (let c = 0; c < modules; c++) {
+      if (matrix[r][c] !== 0 && matrix[r][c] !== 1) continue;
+      // Don't mask function patterns
+      let isFunc = (r < 9 && c < 9) || (r < 9 && c > modules-9) || (r > modules-9 && c < 9) || (r === 6) || (c === 6);
+      if (!isFunc && applyFn(r, c)) matrix[r][c] ^= 1;
+    }
+  }
+
+  // ---- Render to canvas ----
+  let cellSize = Math.floor(size / (modules + 8));
+  let offsetX = Math.floor((size - modules * cellSize) / 2);
+  let offsetY = offsetX;
+
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#1a1a2e';
+  for (let r = 0; r < modules; r++) {
+    for (let c = 0; c < modules; c++) {
+      if (matrix[r][c]) {
+        ctx.fillRect(offsetX + c * cellSize, offsetY + r * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+}
+
+// Init
+function init() {
+  // Round 1: random truth
+  let broken = Math.random() > 0.5;
+  gameState.round1.truth = broken ? 10 + (Math.random() > 0.5 ? 1 : -1) * (1.5 + Math.random() * 2) : 10;
+  drawCookies('cookieJar', []);
+  updateRound1();
+  document.getElementById('round1-hint').innerHTML = broken
+    ? '🤫 （悄悄告诉你：这轮机器<strong style="color:#ee5a24">真的坏了</strong>，试试能不能检测出来！）'
+    : '🤫 （悄悄告诉你：这轮机器<strong style="color:#27ae60">是正常的</strong>，小心别犯第I类错误！）';
+
+  // Round 2 init
+  let broken2 = Math.random() > 0.4;
+  gameState.round2.truth = broken2 ? 10 + (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 2.5) : 10;
+  gameState.round2.caseActive = true;
+  drawCookies('cookieJar2', []);
+  updateRound2Display();
+
+  // Round 3 init - randomize truth (70% broken, 30% normal)
+  randomizeRound3();
+
+  // Draw initial chart
+  drawDistributionChart('distChart1', null, 1, 0.05);
+  drawDistributionChart('distChart3', null, 1, 0.05);
+
+  // Navigation tabs
+  let header = document.querySelector('.header');
+  let nav = document.createElement('div');
+  nav.style.cssText = 'margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap';
+  nav.innerHTML = `
+    <button class="btn btn-secondary" onclick="showRound(1)" id="nav1" style="border-color:#ee5a24;color:#ee5a24">🍪 第一关：基本概念</button>
+    <button class="btn btn-secondary" onclick="showRound(2)" id="nav2">⚡ 第二关：两类错误</button>
+    <button class="btn btn-secondary" onclick="showRound(3)" id="nav3">🔬 第三关：检验功效</button>
+    <button class="btn btn-secondary" onclick="showRound(4)" id="nav4">🏆 知识总结</button>
+  `;
+  header.appendChild(nav);
+
+  // Update nav active style
+  let origShowRound = showRound;
+  showRound = function(n) {
+    origShowRound(n);
+    ['nav1','nav2','nav3','nav4'].forEach(id => {
+      let btn = document.getElementById(id);
+      if (btn) btn.style.cssText = id === 'nav'+n
+        ? 'border-color:#ee5a24;color:#ee5a24;background:#ee5a2420'
+        : '';
+    });
+  };
+}
+
+// Overlay close
+document.getElementById('resultOverlay').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('active');
+});
+
+// Round 2: reveal truth after decision
+let origMakeDecision = makeDecision;
+makeDecision = function(round, decision) {
+  origMakeDecision(round, decision);
+  if (round === 'round2') {
+    document.getElementById('truthHidden').textContent = `μ=${gameState.round2.truth.toFixed(1)} (标准=10)`;
+  }
+  if (round === 'round1') {
+    document.getElementById('round1-hint').innerHTML =
+      `真相揭晓：机器均值 = <strong>${gameState.round1.truth.toFixed(1)}</strong>（标准=10）`;
+  }
+};
+
+init();
+  // --- Share panel setup ---
+  let publicUrl = 'https://b6b9b057a28161.lhr.life/index.html';
+  let localUrl = 'http://10.172.118.172:8080/index.html';
+  let currentUrl = window.location.href;
+  let shareUrl = publicUrl;
+
+  // Update URL display based on how page is accessed
+  let urlSpan = document.getElementById('shareUrl');
+  if (currentUrl.startsWith('file://')) {
+    urlSpan.innerHTML = '<span style="color:#27ae60">🌐 公网:</span> ' + publicUrl;
+  } else if (currentUrl.indexOf('lhr.life') >= 0) {
+    urlSpan.innerHTML = '<span style="color:#27ae60">🌐 公网:</span> ' + publicUrl;
+  } else {
+    urlSpan.innerHTML = '<span style="color:#27ae60">🌐 公网:</span> ' + publicUrl + '<br><span style="color:#8b7355">📍 局域网:</span> ' + localUrl;
+  }
+
+  // Copy link button
+  document.getElementById('btnCopyUrl').addEventListener('click', function() {
+    navigator.clipboard.writeText(shareUrl).then(function() {
+      let msg = document.getElementById('copyMsg');
+      msg.style.display = 'inline';
+      setTimeout(function() { msg.style.display = 'none'; }, 2000);
+    });
+  });
+
+console.log('🔍 假设检验大侦探已就绪！');
+console.log('🍪 第一关：学习基本概念 - 抽取饼干，理解p值和α');
+console.log('⚡ 第二关：两类错误 - 在隐藏真相的情况下做判断');
+console.log('🔬 第三关：检验功效 - 理解样本量的重要性');
+console.log('🏆 点击顶部标签切换关卡');
+console.log('📱 分享链接: ' + shareUrl);
+</script>
+</body>
+</html>
