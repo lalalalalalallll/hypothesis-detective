@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>丝路丹青 — 敦煌壁画颜料之谜</title>
+<style>
+  :root {
+    --earth:#b5442c; --azure:#2c5f8a; --jade:#4a7c59; --gold:#c9a84c;
+    --sand:#f5e6d0; --paper:#fdf8f0; --ink:#2c1810; --card:#fefcf6;
+    --border:#d4c5a0; --shadow:0 3px 16px rgba(80,40,10,0.10);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'PingFang SC','Microsoft YaHei','KaiTi','STKaiti','Segoe UI',sans-serif;background:linear-gradient(180deg,#fef9f2 0%,#fdf5e8 30%,#fdf7ed 60%,#fefaf3 100%);color:var(--ink);min-height:100vh;overflow-x:hidden}
+
+  /* ── 顶部 ── */
+  .top{background:linear-gradient(135deg,#3a1810,#5c2a1a,#7a3828,#8b4a38);padding:14px 20px;text-align:center;box-shadow:0 2px 18px rgba(60,20,0,0.35);border-bottom:3px solid var(--gold);position:relative}
+  .top h1{font-size:1.7em;color:#f5deb3;letter-spacing:3px;text-shadow:0 2px 4px rgba(0,0,0,0.4)}
+  .top .sub{color:#e8c887;font-size:0.78em;margin-top:3px;font-style:italic}
+
+  /* ── 故事进度条 ── */
+  .progress{display:flex;gap:0;justify-content:center;padding:8px 16px;background:var(--sand);border-bottom:2px solid var(--border)}
+  .prog-dot{flex:1;max-width:180px;padding:8px 12px;text-align:center;font-size:0.75em;color:#b8a088;position:relative;cursor:pointer;transition:all 0.3s;font-family:inherit;border:none;background:none}
+  .prog-dot::after{content:'';display:block;height:3px;background:var(--border);margin-top:6px;border-radius:2px;transition:all 0.3s}
+  .prog-dot.done{color:var(--earth);font-weight:bold}.prog-dot.done::after{background:var(--earth)}
+  .prog-dot.active{color:var(--azure);font-weight:bold}.prog-dot.active::after{background:var(--azure);height:4px}
+  .prog-dot .dot-num{display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid #b8a088;line-height:18px;margin-right:4px;font-size:0.85em;transition:all 0.3s}
+  .prog-dot.done .dot-num{border-color:var(--earth);background:var(--earth);color:#fff}
+  .prog-dot.active .dot-num{border-color:var(--azure);background:var(--azure);color:#fff}
+
+  /* ── 布局 ── */
+  .container{max-width:880px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border-radius:8px;padding:20px;margin-bottom:16px;border:1px solid var(--border);box-shadow:var(--shadow)}
+  .card h2{font-size:1.1em;color:var(--earth);margin-bottom:10px;display:flex;align-items:center;gap:8px;border-bottom:1px dotted var(--border);padding-bottom:8px}
+  .card h2 .icon{font-size:1.3em}
+  .story{background:var(--paper);border-radius:6px;padding:16px;line-height:1.9;font-size:0.9em;border-left:4px solid var(--earth);color:var(--ink)}
+  .story strong{color:var(--earth)}
+  .story .big{font-size:1.4em}
+
+  /* ── 章节过渡 ── */
+  .chapter-bridge{background:linear-gradient(135deg,#2c1810,#5c2a1a);color:#f5deb3;border-radius:8px;padding:18px 20px;margin:12px 0;text-align:center;font-size:0.85em;line-height:1.8;border:2px solid var(--gold);display:none}
+  .chapter-bridge .ch-title{font-size:1.2em;font-weight:bold;color:var(--gold);margin-bottom:6px}
+
+  /* ── 统计面板 ── */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px;margin:12px 0}
+  .stat{background:#fff;border-radius:6px;padding:8px;text-align:center;border:1px solid var(--border)}
+  .stat .val{font-size:1.2em;font-weight:bold;color:var(--earth)}
+  .stat .lbl{font-size:0.7em;color:#9a8060;margin-top:2px}
+  .stat .val.azure{color:var(--azure)}
+
+  .slider-box{margin:10px 0}
+  .slider-box label{display:flex;justify-content:space-between;font-size:0.8em;color:#7a6040}
+  .slider-box input[type=range]{width:100%;margin-top:4px;accent-color:var(--earth)}
+
+  .chart-box{background:#fff;border-radius:6px;padding:12px;margin:10px 0;border:1px solid var(--border)}
+  .chart-box canvas{width:100%;height:165px;display:block}
+
+  /* ── 颜料样本 ── */
+  .pigment-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:10px 0;min-height:44px}
+  .pig{width:44px;height:44px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:0.68em;font-weight:bold;color:#fff;cursor:default;transition:transform 0.2s;box-shadow:0 2px 6px rgba(0,0,0,0.15);position:relative}
+  .pig:hover{transform:scale(1.2);z-index:2}
+  @keyframes drop{from{transform:translateY(-28px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .pig{animation:drop 0.35s ease-out}
+  .pig.blue1{background:linear-gradient(135deg,#3a6f9e,#1e4d72)}
+  .pig.blue2{background:linear-gradient(135deg,#4a8ab5,#2a6085)}
+  .pig.green1{background:linear-gradient(135deg,#5a9068,#3a6a48)}
+  .pig.red1{background:linear-gradient(135deg,#b86a48,#8b4020)}
+  .pig.gold1{background:linear-gradient(135deg,#c9a84c,#a08030);color:#2c1810}
+
+  /* ── 决策按钮 ── */
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  .btn{padding:8px 18px;border:none;border-radius:4px;font-size:0.83em;font-weight:bold;cursor:pointer;transition:all 0.2s;font-family:inherit;letter-spacing:1px}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 3px 12px rgba(0,0,0,0.15)}
+  .btn:active{transform:scale(0.97)}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn-primary{background:var(--earth);color:#fff}
+  .btn-azure{background:var(--azure);color:#fff}
+  .btn-gold{background:var(--gold);color:var(--ink)}
+  .btn-outline{background:#fff;color:var(--earth);border:2px solid var(--earth)}
+
+  .decide-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;justify-content:center}
+  .d-btn{flex:1;min-width:130px;padding:13px;border-radius:6px;border:2px solid transparent;font-size:0.88em;font-weight:bold;cursor:pointer;transition:all 0.2s;text-align:center;font-family:inherit;letter-spacing:1px}
+  .d-btn.rej{background:rgba(181,68,44,0.07);border-color:var(--earth);color:var(--earth)}
+  .d-btn.rej:hover{background:rgba(181,68,44,0.16)}
+  .d-btn.acc{background:rgba(74,124,89,0.07);border-color:var(--jade);color:var(--jade)}
+  .d-btn.acc:hover{background:rgba(74,124,89,0.16)}
+
+  /* ── 弹窗 ── */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200}
+  .overlay.active{display:flex}
+  .modal{background:var(--card);border-radius:8px;padding:22px;max-width:600px;max-height:85vh;overflow-y:auto;text-align:center;border:3px solid var(--earth);animation:pop 0.3s ease-out;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+  @keyframes pop{from{transform:scale(0.85);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal .mi{font-size:3em;margin-bottom:6px}
+  .modal h3{font-size:1.1em;color:var(--ink);margin-bottom:6px}
+  .modal .m-detail{text-align:left;line-height:1.8;font-size:0.83em;color:var(--ink);margin:8px 0}
+  .modal .m-stat{background:var(--paper);border-radius:6px;padding:10px;margin:8px 0;text-align:left;font-size:0.8em;line-height:1.8}
+
+  /* ── 辅助元素 ── */
+  /* ── 分享面板 ── */
+  .share-bar{display:flex;align-items:center;gap:14px;background:var(--paper);border:2px dashed var(--gold);border-radius:6px;padding:10px 14px;margin:10px 0;flex-wrap:wrap;justify-content:center}
+  .share-bar .qr-img{width:80px;height:80px;border-radius:4px;border:2px solid var(--border)}
+  .share-bar .share-info{font-size:0.78em;color:#7a6040;line-height:1.7;text-align:left}
+  .share-bar .share-url{font-weight:bold;color:var(--azure);font-size:0.9em;word-break:break-all}
+  .share-bar .btn-copy{padding:4px 12px;font-size:0.7em;background:var(--azure);color:#fff;border:none;border-radius:3px;cursor:pointer;font-family:inherit}
+  .share-bar .btn-copy:hover{opacity:0.85}
+
+  .hint{text-align:center;font-size:0.8em;color:#9a8060;margin-bottom:8px;font-style:italic}
+  .tip-box{background:var(--paper);border:2px solid var(--gold);border-radius:4px;padding:8px 12px;font-size:0.76em;color:#7a5d2e;margin-top:10px;text-align:center}
+  .score-bar{display:flex;justify-content:center;gap:24px;margin:8px 0;font-size:0.83em;flex-wrap:wrap}
+  .dual-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .quad-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+  .group-label{font-weight:bold;font-size:0.78em;margin-bottom:4px}
+  footer{text-align:center;font-size:0.68em;color:#c0a890;padding:14px;font-style:italic}
+
+  @media(max-width:600px){
+    .top h1{font-size:1.3em}.stats{grid-template-columns:repeat(3,1fr)}.dual-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>🎨 丝路丹青</h1>
+  <div class="sub">敦煌壁画颜料溯源 —— 用假设检验追寻千年色彩的身世之谜</div>
+</div>
+
+<!-- 进度条 -->
+<div class="progress">
+  <button class="prog-dot active" id="dot1" onclick="goChapter(1)"><span class="dot-num">壹</span> 青金石之约</button>
+  <button class="prog-dot" id="dot2" onclick="goChapter(2)"><span class="dot-num">贰</span> 双窟对望</button>
+  <button class="prog-dot" id="dot3" onclick="goChapter(3)"><span class="dot-num">叁</span> 丝路全景</button>
+</div>
+
+<div class="container">
+
+<!-- ═══════════ 第一章→第二章 过渡 ═══════════ -->
+<div class="chapter-bridge" id="bridge1" style="display:none">
+  <div class="ch-title">📜 第一章回顾 & 第二章预告</div>
+  <p>第一章你学到了：<strong>单样本 t 检验</strong>——如何判断一件"物品"是否符合已知标准。<br>H₀·H₁ · p 值 · α · 小概率反证法<br><br>
+  第二章将推进：北窟的结论引发新疑问——它与<strong>南区已知洞窟</strong>的壁画是否同源？<br>你将学到<strong>两样本 t 检验</strong>和<strong>两类错误</strong>的概念。</p>
+</div>
+
+<!-- ═══════════ CHAPTER 1 ═══════════ -->
+<div class="card" id="ch1">
+  <h2><span class="icon">💎</span> 第一章 · 青金石之约（单样本 t 检验）</h2>
+  <div class="story">
+    <p><span class="big">🏜️</span> <strong>敦煌·莫高窟</strong></p>
+    <p>你跟随敦煌研究院的考古队，在北区一处<strong>新近清理的洞窟</strong>中看到满壁飞天。最引人注目的，是画师大量使用的<strong>深蓝色颜料</strong>。</p>
+    <p>丝绸之路鼎盛时期，最名贵的蓝色颜料是产自阿富汗的<strong>青金石（Lapis Lazuli）</strong>，经丝路商队万里迢迢运抵敦煌。它的化学特征是：<strong>含铝量（Al₂O₃）应为 25%</strong>。</p>
+    <p>但新窟偏离莫高窟核心区较远，这批颜料会不会是画师就地取材的<strong>国产替代品</strong>？还是说——它们同样是跨越万里的舶来珍宝？</p>
+    <p>你小心翼翼地刮取微量颜料样本，送进便携式 XRF 分析仪……</p>
+    <p style="color:#9a8060;margin-top:6px;font-size:0.85em">
+      📌 <strong>H₀</strong>：μ = 25%（此颜料确是青金石，符合其化学特征）<br>
+      📌 <strong>H₁</strong>：μ ≠ 25%（此颜料并非纯正青金石，来源存疑）
+    </p>
+  </div>
+
+  <div class="share-bar" id="shareBar">
+    <img class="qr-img" id="qrImg" src="qr_code.png" alt="QR码">
+    <div class="share-info">
+      <span>📱 <strong>扫码即可打开游戏</strong></span><br>
+      <span class="share-url" id="shareUrl">lalalalalalallll.github.io/hypothesis-detective/silkroad/</span><br>
+      <button class="btn-copy" id="btnCopy">📋 复制链接</button>
+      <span id="copyOk" style="color:var(--jade);display:none;margin-left:6px">已复制!</span>
+    </div>
+  </div>
+
+  <div class="hint" id="hint1">💎 刮取壁画蓝色颜料样本进行 XRF 分析……</div>
+  <div class="pigment-row" id="pig1"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="val" id="mean1">-</div><div class="lbl">样本均值 X̄ (%)</div></div>
+    <div class="stat"><div class="val" id="n1">0</div><div class="lbl">样本量 n</div></div>
+    <div class="stat"><div class="val azure" id="t1">-</div><div class="lbl">t 统计量</div></div>
+    <div class="stat"><div class="val azure" id="p1">-</div><div class="lbl">p 值</div></div>
+  </div>
+
+  <div class="chart-box"><canvas id="chart1"></canvas></div>
+
+  <div class="slider-box">
+    <label>⚖️ 显著性水平 α <span id="aLab1">α = 0.05</span></label>
+    <input type="range" id="alpha1" min="1" max="10" value="5" step="1">
+  </div>
+
+  <div class="decide-row">
+    <button class="d-btn rej" id="rej1" disabled>🚨 拒绝 H₀<br><small>颜料并非纯正青金石</small></button>
+    <button class="d-btn acc" id="acc1" disabled>✅ 不拒绝 H₀<br><small>证据不足，暂认为是青金石</small></button>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="samp1">💎 刮取一份样本</button>
+    <button class="btn btn-azure" id="samp5_1">💎×5 批量取样</button>
+    <button class="btn btn-gold" id="reset1">🔄 重采样</button>
+  </div>
+  <div class="tip-box" id="tip1">💡 <strong>新知：</strong>至少需要 <strong>2</strong> 份样本才能计算 t 值和 p 值。观察数据，对照 α，做出你的判断。</div>
+</div>
+
+<!-- ═══════════ 第二章→第三章 过渡 ═══════════ -->
+<div class="chapter-bridge" id="bridge2" style="display:none">
+  <div class="ch-title">📜 前两章回顾 & 第三章预告</div>
+  <p>前两章你学到了：<strong>单样本 t 检验</strong>（一件 vs 标准）+ <strong>两样本 t 检验</strong>（两件对比）+ <strong>两类错误</strong>。<br>
+  第三章将拓展视野：<strong>同时比较四个石窟群</strong>的颜料数据。<br>
+  为什么不能做 6 次两两 t 检验？<strong>ANOVA</strong> 如何控制整体错误率？</p>
+</div>
+
+<!-- ═══════════ CHAPTER 2 ═══════════ -->
+<div class="card" id="ch2" style="display:none">
+  <h2><span class="icon">🔬</span> 第二章 · 双窟对望（两样本 t 检验）</h2>
+  <div class="story">
+    <p><span class="big">🏛️</span> <strong>新问题浮现</strong></p>
+    <p>你已将北区新窟记为<strong>"北窟"</strong>。现在你需要从莫高窟<strong>南区已知洞窟</strong>（记为"南窟"）的同类壁画上取样，对比两处颜料的含铝量。</p>
+    <p>学界有一种推测：<strong>北区洞窟可能是另一批画师、另一时期、使用不同贸易路线获得的颜料</strong>。如果南北两窟的颜料化学特征显著不同，就为此说提供了关键证据。</p>
+    <p>但如果差异不显著——则说明整个莫高窟的画师群体可能共享同一颜料供应链。</p>
+
+    <p style="color:var(--azure);margin-top:8px;font-size:0.85em">
+      💭 <strong>上一章你学到了：</strong>如何用单样本 t 检验判断一件"物品"是否符合标准。<br>
+      💭 <strong>这一章你将学到：</strong>如何比较<strong>两个独立来源</strong>的样本，以及判断时可能犯的<strong>两类错误</strong>。
+    </p>
+
+    <p style="color:#9a8060;margin-top:6px;font-size:0.85em">
+      📌 <strong>H₀</strong>：μ北 = μ南（两窟颜料同源，化学特征无差异）<br>
+      📌 <strong>H₁</strong>：μ北 ≠ μ南（两窟颜料不同源，存在显著差异）
+    </p>
+  </div>
+
+  <div class="hint" id="hint2">🔬 分别从北窟和南窟取样……</div>
+  <div class="dual-grid">
+    <div><div class="group-label" style="color:var(--azure)">💎 北窟（新发现）</div><div class="pigment-row" id="pig2A"></div></div>
+    <div><div class="group-label" style="color:var(--jade)">🖌️ 南窟（已知洞窟）</div><div class="pigment-row" id="pig2B"></div></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="val azure" id="mean2A">-</div><div class="lbl">北窟 X̄ (%)</div></div>
+    <div class="stat"><div class="val" id="n2A">0</div><div class="lbl">北窟 n</div></div>
+    <div class="stat"><div class="val" id="mean2B">-</div><div class="lbl">南窟 X̄ (%)</div></div>
+    <div class="stat"><div class="val" id="n2B">0</div><div class="lbl">南窟 n</div></div>
+    <div class="stat"><div class="val azure" id="t2">-</div><div class="lbl">t 统计量</div></div>
+    <div class="stat"><div class="val azure" id="p2">-</div><div class="lbl">p 值</div></div>
+    <div class="stat"><div class="val" id="aVal2">0.05</div><div class="lbl">α</div></div>
+  </div>
+
+  <div class="chart-box"><canvas id="chart2"></canvas></div>
+
+  <div class="slider-box">
+    <label>⚖️ 显著性水平 α <span id="aLab2">α = 0.05</span></label>
+    <input type="range" id="alpha2" min="1" max="10" value="5" step="1">
+  </div>
+
+  <div class="decide-row">
+    <button class="d-btn rej" id="rej2" disabled>🚨 拒绝 H₀<br><small>两窟颜料不同源</small></button>
+    <button class="d-btn acc" id="acc2" disabled>✅ 不拒绝 H₀<br><small>证据不足，暂视同源</small></button>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-azure" id="samp2A">💎 取北窟</button>
+    <button class="btn btn-primary" id="samp2B" style="background:var(--jade)">🖌️ 取南窟</button>
+    <button class="btn btn-gold" id="reset2">🔄 新采样</button>
+  </div>
+  <div class="score-bar"><span>✅ 正确：<span style="color:var(--jade)" id="ok2">0</span></span><span>❌ I类：<span style="color:var(--earth)" id="t1_2">0</span></span><span>⚠️ II类：<span style="color:var(--gold)" id="t2_2">0</span></span><span>📋 总：<span id="tot2">0</span></span></div>
+  <div class="tip-box" id="tip2">💡 <strong>新知：</strong>比较两组独立样本，需要两组的 n 都 ≥ 2。第 I 类错误 = 冤枉同源（说不同实际上同），第 II 类错误 = 错过差异（说同源实际不同）。</div>
+</div>
+
+<!-- ═══════════ 第三章→终章 过渡 ═══════════ -->
+<div class="chapter-bridge" id="bridge3" style="display:none">
+  <div class="ch-title">📜 全文回顾</div>
+  <p>三章已走完假设检验的完整逻辑链：<br><strong>单样本 t → 两样本 t → ANOVA</strong><br>
+  从鉴定一件文物，到比较两个洞窟，到普查整条丝绸之路。<br>
+  下方终章汇总了所有核心概念。</p>
+</div>
+
+<!-- ═══════════ CHAPTER 3 ═══════════ -->
+<div class="card" id="ch3" style="display:none">
+  <h2><span class="icon">🗺️</span> 第三章 · 丝路全景（ANOVA）</h2>
+  <div class="story">
+    <p><span class="big">🌏</span> <strong>从一窟到一路</strong></p>
+    <p>前两章你从<strong>一个洞窟</strong>的鉴定（单样本 t 检验），推进到<strong>两个洞窟</strong>的对比（两样本 t 检验）。现在，敦煌研究院发来丝路沿线<strong>四个石窟群</strong>蓝色颜料的 XRF 数据：</p>
+    <p>
+      🏛️ <strong>敦煌（甘肃）</strong> · 🕌 <strong>克孜尔（新疆）</strong> · 🏯 <strong>柏孜克里克（新疆）</strong> · ⛰️ <strong>麦积山（甘肃）</strong>
+    </p>
+    <p>如果四个石窟的颜料含铝量<strong>不全相同</strong>，说明丝路上存在<strong>多个独立的颜料供应源</strong>，画师并非使用统一商路进货。这将改写丝绸之路贸易史的相关章节。</p>
+
+    <p style="color:var(--azure);margin-top:8px;font-size:0.85em">
+      💭 <strong>前两章你学到了：</strong>单样本 t 检验（一件 vs 标准）+ 两样本 t 检验（两件对比）+ 两类错误。<br>
+      💭 <strong>这一章你将学到：</strong>如果要<strong>同时比较四个石窟</strong>，为什么不能做 6 次两两 t 检验？ANOVA 如何解决这个问题？
+    </p>
+
+    <p style="color:#9a8060;margin-top:6px;font-size:0.85em">
+      📌 <strong>H₀</strong>：μ敦煌 = μ克孜尔 = μ柏孜克里克 = μ麦积山<br>
+      📌 <strong>H₁</strong>：至少一个石窟群的颜料含铝量与其他不同
+    </p>
+  </div>
+
+  <div class="hint" id="hint3">🗺️ 从丝路沿线四个石窟群分别取样……</div>
+  <div class="quad-grid">
+    <div><div class="group-label" style="color:var(--earth)">🏛️ 敦煌</div><div class="pigment-row" id="pig3A"></div></div>
+    <div><div class="group-label" style="color:var(--azure)">🕌 克孜尔</div><div class="pigment-row" id="pig3B"></div></div>
+    <div><div class="group-label" style="color:var(--jade)">🏯 柏孜克里克</div><div class="pigment-row" id="pig3C"></div></div>
+    <div><div class="group-label" style="color:var(--gold)">⛰️ 麦积山</div><div class="pigment-row" id="pig3D"></div></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="val azure" id="f3">-</div><div class="lbl">F 统计量</div></div>
+    <div class="stat"><div class="val azure" id="p3">-</div><div class="lbl">p 值</div></div>
+    <div class="stat"><div class="val" id="n3">0</div><div class="lbl">总样本量</div></div>
+    <div class="stat"><div class="val" id="aVal3">0.05</div><div class="lbl">α</div></div>
+  </div>
+
+  <div class="chart-box"><canvas id="chart3"></canvas></div>
+
+  <div class="slider-box">
+    <label>⚖️ 显著性水平 α <span id="aLab3">α = 0.05</span></label>
+    <input type="range" id="alpha3" min="1" max="10" value="5" step="1">
+  </div>
+
+  <div class="decide-row">
+    <button class="d-btn rej" id="rej3" disabled>🚨 拒绝 H₀<br><small>四石窟不全同源</small></button>
+    <button class="d-btn acc" id="acc3" disabled>✅ 不拒绝 H₀<br><small>无证据表明来源不同</small></button>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="s3_1">🏛️ 敦煌</button>
+    <button class="btn btn-azure" id="s3_2">🕌 克孜尔</button>
+    <button class="btn" style="background:var(--jade);color:#fff" id="s3_3">🏯 柏孜</button>
+    <button class="btn btn-gold" id="s3_4">⛰️ 麦积</button>
+    <button class="btn btn-outline" id="reset3">🔄 重采样</button>
+  </div>
+  <div style="margin-top:8px;text-align:center"><button class="btn btn-azure" id="auto3" style="font-size:0.76em">🤖 模拟 50 次 ANOVA</button></div>
+  <div class="tip-box" id="tip3">💡 <strong>新知：</strong>如果做 6 次两两 t 检验，第 I 类错误总概率 ≈ 1−(1−0.05)⁶ ≈ <strong>26%</strong>！ANOVA 的 F 检验一次性控制 α=0.05。拒绝后需做<strong>事后多重比较</strong>定位差异。</div>
+</div>
+
+<!-- ═══════════ 终章 ═══════════ -->
+<div class="card" id="ch4" style="display:none">
+  <h2><span class="icon">📜</span> 丝路丹青 · 知识回顾</h2>
+  <div class="story" style="line-height:2.3">
+    <p>🏜️ <strong>第一章：青金石之约</strong> → 单样本 t 检验 → 一件文物 vs 已知标准</p>
+    <p>🏛️ <strong>第二章：双窟对望</strong> → 两样本 t 检验 → 两个来源对比 + 两类错误</p>
+    <p>🗺️ <strong>第三章：丝路全景</strong> → ANOVA → 多组同时比较 + 多重比较校正</p>
+    <p style="border-top:1px dotted var(--border);padding-top:10px;margin-top:10px">
+      🎯 <strong>假设检验的核心逻辑链：</strong><br>
+      ① 提出 H₀（保守立场）和 H₁（想证实的）<br>
+      ② 收集样本数据，计算检验统计量<br>
+      ③ 算出 p 值 → 如果 H₀ 成立，出现当前结果的概率<br>
+      ④ p < α → 拒绝 H₀（小概率反证法）；p ≥ α → 不拒绝 H₀<br>
+      ⑤ 注意两类错误：α（冤枉）= 第 I 类；β（放过）= 第 II 类<br>
+      ⑥ 多组比较用 ANOVA 而非多次 t 检验（控制 FWER）
+    </p>
+    <p style="color:#9a8060;margin-top:10px;font-style:italic">
+      🇨🇳 敦煌学研究中，XRF、拉曼光谱等科学技术+统计学已成为颜料溯源的常规手段。<br>
+      2019 年《敦煌研究》刊文指出：莫高窟不同时期蓝色颜料确实存在来源差异，<br>
+      反映了丝路贸易网络的变迁——这就是假设检验在文化遗产保护中的真实应用。
+    </p>
+  </div>
+</div>
+
+</div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<footer>🎨 丝路丹青 × 假设检验互动教学 | 用统计学追寻千年色彩的身世</footer>
+
+<script>
+//══════════════════════ 统计引擎 ══════════════════════
+function lngamma(z){let c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,1.208650973866179e-3,-5.395239384953e-6],x=z,y=z,t=x+5.5;t-=(x+.5)*Math.log(t);let s=1.000000000190015;for(let j=0;j<6;j++)s+=c[j]/++y;return -t+Math.log(2.5066282746310005*s/x)}
+function incBeta(x,a,b){if(x<=0)return 0;if(x>=1)return 1;if(x>(a+1)/(a+b+2))return 1-incBeta(1-x,b,a);let lb=lngamma(a+b)-lngamma(a)-lngamma(b),f=Math.exp(lb+a*Math.log(x)+b*Math.log(1-x))/a,T=1e-30,F=1,C=1,D=1-(a+b)*x/(a+1);if(Math.abs(D)<T)D=T;D=1/D;F=D;for(let m=1;m<=200;m++){let m2=2*m,tt=m*(b-m)*x/((a+m2-1)*(a+m2));D=1+tt*D;if(Math.abs(D)<T)D=T;D=1/D;C=1+tt/C;if(Math.abs(C)<T)C=T;F*=C*D;tt=-(a+m)*(a+b+m)*x/((a+m2)*(a+m2+1));D=1+tt*D;if(Math.abs(D)<T)D=T;D=1/D;C=1+tt/C;if(Math.abs(C)<T)C=T;F*=C*D;if(Math.abs(C*D-1)<1e-12)break}let r=f*F;return Math.max(0,Math.min(1,isFinite(r)?r:0))}
+function nQuant(p){if(p<=0)return -1/0;if(p>=1)return 1/0;if(p>.5)return -nQuant(1-p);let a=[-3.969683028665376e1,2.209460984245205e2,-2.759285104469687e2,1.383577518672690e2,-3.066479806614716e1,2.506628277459239e0],b=[-5.447609879822406e1,1.615858368580409e2,-1.556989798598866e2,6.680131188771972e1,-1.328068155288572e1,1],c=[-7.784894002430293e-3,-3.223964580411365e-1,-2.400758277161838,-2.549732539343734,4.374664141464968,2.938163982698783],d=[7.784695709041462e-3,3.224671290700398e-1,2.445134137142996,3.754408661907416,1],q=p-.5;if(Math.abs(q)<=.425){let r=.180625-q*q;return q*((((((a[5]*r+a[4])*r+a[3])*r+a[2])*r+a[1])*r+a[0])/(((((b[5]*r+b[4])*r+b[3])*r+b[2])*r+b[1])*r+1))}else{let r=Math.sqrt(-Math.log(q<0?p:1-p)),v=(((((c[5]*r+c[4])*r+c[3])*r+c[2])*r+c[1])*r+c[0])/((((d[4]*r+d[3])*r+d[2])*r+d[1])*r+1);return q<0?-v:v}}
+function nCDF(x){let a1=.254829592,a2=-.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=.3275911,sg=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);let t=1/(1+p*x),y=1-((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);return .5*(1+sg*y)}
+
+function sample(mean,sd=3.5){let u1=Math.random(),u2=Math.random();return Math.max(.1,Math.round((mean+(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2))*sd)*10)/10)}
+function calc1(s,h0){if(s.length<2)return null;let n=s.length,m=s.reduce((a,b)=>a+b,0)/n,v=s.reduce((ss,x)=>ss+(x-m)**2,0)/(n-1),se=Math.sqrt(v/n);return se===0?null:{t:(m-h0)/se,mean:m,n,se}}
+function calc2(a,b){if(a.length<2||b.length<2)return null;let na=a.length,nb=b.length,ma=a.reduce((s,x)=>s+x,0)/na,mb=b.reduce((s,x)=>s+x,0)/nb,va=a.reduce((s,x)=>s+(x-ma)**2,0)/(na-1),vb=b.reduce((s,x)=>s+(x-mb)**2,0)/(nb-1),sp2=((na-1)*va+(nb-1)*vb)/(na+nb-2),se=Math.sqrt(sp2*(1/na+1/nb));return se===0?null:{t:(ma-mb)/se,mA:ma,mB:mb,nA:na,nB:nb,se}}
+function calcANOVA(gs){let all=gs.flat(),N=all.length,k=gs.length,gm=all.reduce((a,b)=>a+b,0)/N,ssb=0,ssw=0;for(let g of gs){let m=g.reduce((a,b)=>a+b,0)/g.length;ssb+=g.length*(m-gm)**2;for(let x of g)ssw+=(x-m)**2}let msb=ssb/(k-1),msw=ssw/(N-k);return msw===0?null:{F:msb/msw,df1:k-1,df2:N-k,means:gs.map(g=>g.reduce((a,b)=>a+b,0)/g.length),N,k}}
+function pT(t,df){if(df<=0||!isFinite(t))return null;let x=df/(df+t*t);x=Math.max(1e-15,Math.min(1-1e-15,x));return Math.max(0,Math.min(1,incBeta(x,df/2,.5)))}
+function pF(F,df1,df2){if(!isFinite(F)||F<0)return null;let x=df2/(df2+df1*F);x=Math.max(1e-15,Math.min(1-1e-15,x));return Math.max(0,Math.min(1,1-incBeta(x,df2/2,df1/2)))}
+function fCrit(df1,df2,alpha){if(df1<=0||df2<=0)return 1;let z=nQuant(1-alpha),d1=2/(9*df1),d2=2/(9*df2),num=1-d2-z*Math.sqrt(d1+d2-d1*d2*z*z),den=1-d1-d1*z*z;if(Math.abs(den)<1e-10)return Infinity;return Math.pow(num/den,3)}
+
+//══════════════════════ 图表 ══════════════════════
+function tDen(x,df){let c=lngamma((df+1)/2)-lngamma(df/2);return Math.exp(c)/Math.sqrt(df*Math.PI)*Math.pow(1+x*x/df,-(df+1)/2)}
+function fDen(x,df1,df2){if(x<=0)return 0;let c=lngamma((df1+df2)/2)-lngamma(df1/2)-lngamma(df2/2);return Math.exp(c)*Math.pow(df1/df2,df1/2)*Math.pow(x,df1/2-1)*Math.pow(1+df1/df2*x,-(df1+df2)/2)}
+function drawChart(cid,tv,df,alpha,fm=false){
+  let cv=document.getElementById(cid);if(!cv)return;
+  let ctx=cv.getContext('2d'),w=cv.width=cv.parentElement.clientWidth-24,h=cv.height=165;
+  ctx.clearRect(0,0,w,h);let ml=42,mr=22,mt=20,mb=26,pw=w-ml-mr,ph=h-mt-mb;
+  let xMin=fm?0:-4.5,xMax=fm?5:4.5,tX=v=>ml+(v-xMin)/(xMax-xMin)*pw;
+  if(fm){
+    ctx.beginPath();ctx.strokeStyle='#b8a088';ctx.lineWidth=2;let first=true;
+    for(let px=1;px<pw;px++){let x=xMin+(px/pw)*(xMax-xMin),den=fDen(x,df.df1,df.df2),py=mt+ph-den*ph*4;if(first){ctx.moveTo(tX(x),py);first=false}else ctx.lineTo(tX(x),py)}ctx.stroke();
+    let crit=fCrit(df.df1,df.df2,alpha);shadeF(ctx,crit,xMax,df.df1,df.df2,tX,mt,ph,'rgba(181,68,44,0.3)',pw,xMin,xMax);
+    if(tv&&isFinite(tv)){let tx=tX(tv);ctx.beginPath();ctx.strokeStyle='#2c1810';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.moveTo(tx,mt);ctx.lineTo(tx,mt+ph);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#2c1810';ctx.font='bold 10px KaiTi,Microsoft YaHei';ctx.textAlign='center';ctx.fillText('F='+tv.toFixed(2),tx,mt-4);ctx.textAlign='start'}
+  }else{
+    ctx.beginPath();ctx.strokeStyle='#b8a088';ctx.lineWidth=2;let first=true;
+    for(let px=0;px<pw;px++){let x=xMin+(px/pw)*(xMax-xMin),den=tDen(x,df),py=mt+ph-den*ph*3;if(first){ctx.moveTo(tX(x),py);first=false}else ctx.lineTo(tX(x),py)}ctx.stroke();
+    let crit=nQuant(1-alpha/2);shadeR(ctx,xMin,-crit,df,tX,mt,ph,'rgba(181,68,44,0.3)',pw,xMin,xMax);shadeR(ctx,crit,xMax,df,tX,mt,ph,'rgba(181,68,44,0.3)',pw,xMin,xMax);
+    if(tv!==null&&isFinite(tv)){let tx=tX(tv);ctx.beginPath();ctx.strokeStyle='#2c1810';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.moveTo(tx,mt);ctx.lineTo(tx,mt+ph);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#2c1810';ctx.font='bold 10px KaiTi,Microsoft YaHei';ctx.textAlign='center';ctx.fillText('t='+tv.toFixed(2),tx,mt-4);ctx.textAlign='start'}
+  }
+  ctx.strokeStyle='#d4c5b0';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ml,mt+ph);ctx.lineTo(ml+pw,mt+ph);ctx.stroke();
+  ctx.fillStyle='#8b7355';ctx.font='9px KaiTi,Microsoft YaHei';ctx.textAlign='center';
+  for(let v=Math.ceil(xMin);v<=Math.floor(xMax);v++){if(v===0&&!fm)continue;ctx.fillText(v,tX(v),mt+ph+14)}
+  if(!fm)ctx.fillText('0',tX(0),mt+ph+14);
+}
+function shadeR(ctx,xS,xE,df,tX,mt,ph,c,pw,xMin,xMax){ctx.save();ctx.beginPath();let sx=Math.max(xMin,xS),ex=Math.min(xMax,xE),first=true;for(let px=Math.max(0,((sx-xMin)/(xMax-xMin))*pw);px<=Math.min(pw,((ex-xMin)/(xMax-xMin))*pw);px++){let x=xMin+(px/pw)*(xMax-xMin),y=mt+ph-tDen(x,df)*ph*3;if(first){ctx.moveTo(tX(x),mt+ph);ctx.lineTo(tX(x),y);first=false}else ctx.lineTo(tX(x),y)}ctx.lineTo(tX(ex),mt+ph);ctx.closePath();ctx.fillStyle=c;ctx.fill();ctx.restore()}
+function shadeF(ctx,xS,xE,df1,df2,tX,mt,ph,c,pw,xMin,xMax){ctx.save();ctx.beginPath();let sx=Math.max(xMin,xS),ex=Math.min(xMax,xE),first=true;for(let px=Math.max(1,((sx-xMin)/(xMax-xMin))*pw);px<=Math.min(pw,((ex-xMin)/(xMax-xMin))*pw);px++){let x=xMin+(px/pw)*(xMax-xMin),y=mt+ph-fDen(x,df1,df2)*ph*4;if(first){ctx.moveTo(tX(x),mt+ph);ctx.lineTo(tX(x),y);first=false}else ctx.lineTo(tX(x),y)}ctx.lineTo(tX(ex),mt+ph);ctx.closePath();ctx.fillStyle=c;ctx.fill();ctx.restore()}
+
+//══════════════════════ 渲染 ══════════════════════
+function rend(id,samples,cls,icon){let el=document.getElementById(id);el.innerHTML=samples.map((s,i)=>'<div class="pig '+cls+'" title="#'+(i+1)+': '+s+'%">'+icon+'<br>'+s+'</div>').join('');if(samples.length===0)el.innerHTML='<div style="color:#c0a890;padding:10px;font-size:0.75em">等待取样……</div>'}
+function showM(v,icon,stats,edu){document.getElementById('modal').innerHTML='<div class="mi">'+icon+'</div><h3>'+v+'</h3>'+(stats||'')+'<div class="m-detail">'+edu+'</div><button class="btn btn-primary" onclick="document.getElementById(\'overlay\').classList.remove(\'active\')">朕知道了</button>';document.getElementById('overlay').classList.add('active')}
+
+//══════════════════════ 状态 ══════════════════════
+let G={
+  r1:{s:[],truth:25,alpha:.05,broken:!0},
+  r2:{a:[],b:[],tA:25,tB:25,alpha:.05,ok:0,t1:0,t2:0,tot:0,broken:!0},
+  r3:{gs:[[],[],[],[]],ts:[25,25,25,25],alpha:.05,broken:!0},
+  currentChapter:1
+};
+
+//══════════════════════ 章节切换 ══════════════════════
+function goChapter(n){
+  G.currentChapter=n;
+  ['ch1','ch2','ch3','ch4'].forEach((id,i)=>{document.getElementById(id).style.display=(i===n-1&&n<=4?'':'none')});
+  ['bridge1','bridge2','bridge3'].forEach((id,i)=>{document.getElementById(id).style.display=(i===n-2&&n>1?'block':'none')});
+  ['dot1','dot2','dot3'].forEach((id,i)=>{let el=document.getElementById(id);el.classList.remove('active','done');if(i<n-1)el.classList.add('done');if(i===n-1&&n<=3)el.classList.add('active')});
+  if(n===4){
+    document.getElementById('dot1').classList.add('done');
+    document.getElementById('dot2').classList.add('done');
+    document.getElementById('dot3').classList.add('done');
+  }
+}
+
+//══════════════════════ 第一章 ══════════════════════
+function up1(){let s=G.r1,n=s.s.length;document.getElementById('n1').textContent=n;let r=n>=2?calc1(s.s,25):null;document.getElementById('mean1').textContent=n>0?(s.s.reduce((a,b)=>a+b,0)/n).toFixed(1):'-';document.getElementById('t1').textContent=r?r.t.toFixed(3):'-';let p=r?pT(Math.abs(r.t),n-1):null;document.getElementById('p1').textContent=p!==null?p.toFixed(4):'-';document.getElementById('rej1').disabled=n<2;document.getElementById('acc1').disabled=n<2;drawChart('chart1',r?r.t:null,Math.max(n-1,1),s.alpha)}
+document.getElementById('samp1').onclick=()=>{G.r1.s.push(sample(G.r1.truth,3.5));rend('pig1',G.r1.s,'blue1','💎');up1();let n=G.r1.s.length;document.getElementById('hint1').innerHTML=n<2?'💎 还需 <strong>'+(2-n)+'</strong> 份样本……':'💎 已取样 '+n+' 份，数据就绪'};
+document.getElementById('samp5_1').onclick=()=>{for(let i=0;i<5;i++)G.r1.s.push(sample(G.r1.truth,3.5));rend('pig1',G.r1.s,'blue1','💎');up1();document.getElementById('hint1').innerHTML='💎 已取样 '+G.r1.s.length+' 份'};
+document.getElementById('alpha1').oninput=function(){G.r1.alpha=this.value/100;document.getElementById('aLab1').textContent='α = '+G.r1.alpha.toFixed(2);up1()};
+document.getElementById('reset1').onclick=()=>{G.r1.broken=Math.random()>.5;G.r1.truth=G.r1.broken?25+(Math.random()>.5?1:-1)*(3+Math.random()*4):25;G.r1.s=[];rend('pig1',[],'blue1','💎');up1();document.getElementById('hint1').innerHTML=G.r1.broken?'🤫 颜料<strong style="color:#b5442c">确实并非纯正青金石</strong>（真实μ='+G.r1.truth.toFixed(1)+'%≠25%），试试能否检测？':'🤫 颜料<strong style="color:#4a7c59">确为纯正青金石</strong>（μ=25%），慎防误判！'};
+document.getElementById('rej1').onclick=()=>decide('r1','reject');
+document.getElementById('acc1').onclick=()=>decide('r1','accept');
+
+//══════════════════════ 第二章 ══════════════════════
+function up2(){let s=G.r2,na=s.a.length,nb=s.b.length;document.getElementById('n2A').textContent=na;document.getElementById('n2B').textContent=nb;document.getElementById('mean2A').textContent=na>0?(s.a.reduce((a,b)=>a+b,0)/na).toFixed(1):'-';document.getElementById('mean2B').textContent=nb>0?(s.b.reduce((a,b)=>a+b,0)/nb).toFixed(1):'-';let r=calc2(s.a,s.b);document.getElementById('t2').textContent=r?r.t.toFixed(3):'-';let p=r?pT(Math.abs(r.t),na+nb-2):null;document.getElementById('p2').textContent=p!==null?p.toFixed(4):'-';document.getElementById('aVal2').textContent=s.alpha.toFixed(2);document.getElementById('rej2').disabled=!r;document.getElementById('acc2').disabled=!r;drawChart('chart2',r?r.t:null,Math.max(na+nb-2,1),s.alpha)}
+document.getElementById('samp2A').onclick=()=>{G.r2.a.push(sample(G.r2.tA,3.5));rend('pig2A',G.r2.a,'blue1','💎');up2();document.getElementById('hint2').innerHTML='🔬 北窟: '+G.r2.a.length+' 份, 南窟: '+G.r2.b.length+' 份'};
+document.getElementById('samp2B').onclick=()=>{G.r2.b.push(sample(G.r2.tB,3.5));rend('pig2B',G.r2.b,'green1','🖌️');up2();document.getElementById('hint2').innerHTML='🔬 北窟: '+G.r2.a.length+' 份, 南窟: '+G.r2.b.length+' 份'};
+document.getElementById('alpha2').oninput=function(){G.r2.alpha=this.value/100;document.getElementById('aLab2').textContent='α = '+G.r2.alpha.toFixed(2);up2()};
+document.getElementById('reset2').onclick=()=>{G.r2.broken=Math.random()<.7;let d=G.r2.broken?(Math.random()>.5?1:-1)*(3+Math.random()*4):0;G.r2.tA=25;G.r2.tB=25+d;G.r2.a=[];G.r2.b=[];rend('pig2A',[],'blue1','💎');rend('pig2B',[],'green1','🖌️');up2();document.getElementById('hint2').innerHTML=G.r2.broken?'🤫 两窟颜料<strong style="color:#b5442c">不同源</strong>（Δ≈'+Math.abs(d).toFixed(1)+'%），试试能否检测？':'🤫 两窟颜料<strong style="color:#4a7c59">同源</strong>，小心第I类错误！'};
+document.getElementById('rej2').onclick=()=>decide('r2','reject');
+document.getElementById('acc2').onclick=()=>decide('r2','accept');
+
+//══════════════════════ 第三章 ══════════════════════
+function up3(){let s=G.r3,gs=s.gs,tot=gs.reduce((a,g)=>a+g.length,0);document.getElementById('n3').textContent=tot;let av=gs.every(g=>g.length>=2)?calcANOVA(gs):null;document.getElementById('f3').textContent=av?av.F.toFixed(3):'-';if(av){let p=pF(av.F,av.df1,av.df2);document.getElementById('p3').textContent=p!==null?p.toFixed(4):'-';drawChart('chart3',av.F,{df1:av.df1,df2:av.df2},s.alpha,!0)}else{document.getElementById('p3').textContent='-';drawChart('chart3',null,{df1:3,df2:4},s.alpha,!0)}document.getElementById('aVal3').textContent=s.alpha.toFixed(2);document.getElementById('rej3').disabled=!av;document.getElementById('acc3').disabled=!av}
+function s3(i){G.r3.gs[i].push(sample(G.r3.ts[i],4));let ids=['pig3A','pig3B','pig3C','pig3D'],cls=['blue1','blue2','green1','gold1'],icons=['💎','💠','🖌️','✨'];rend(ids[i],G.r3.gs[i],cls[i],icons[i]);up3();document.getElementById('hint3').innerHTML='🗺️ 总样本: '+G.r3.gs.reduce((a,g)=>a+g.length,0)+' 份（每组≥2可做ANOVA）'}
+document.getElementById('s3_1').onclick=()=>s3(0);document.getElementById('s3_2').onclick=()=>s3(1);
+document.getElementById('s3_3').onclick=()=>s3(2);document.getElementById('s3_4').onclick=()=>s3(3);
+document.getElementById('alpha3').oninput=function(){G.r3.alpha=this.value/100;document.getElementById('aLab3').textContent='α = '+G.r3.alpha.toFixed(2);up3()};
+document.getElementById('reset3').onclick=()=>{G.r3.broken=Math.random()<.5;let os=G.r3.broken?[0,4,7,10].map(v=>v+(Math.random()-.5)*4):[0,0,0,0];G.r3.ts=[25+os[0],25+os[1],25+os[2],25+os[3]];G.r3.gs=[[],[],[],[]];['pig3A','pig3B','pig3C','pig3D'].forEach((id,i)=>rend(id,[],['blue1','blue2','green1','gold1'][i],['💎','💠','🖌️','✨'][i]));up3();document.getElementById('hint3').innerHTML=G.r3.broken?'🤫 石窟间<strong style="color:#b5442c">存在差异</strong>（均值: '+G.r3.ts.map(t=>t.toFixed(0)+'%').join(', ')+'），试试ANOVA能否检测？':'🤫 四石窟<strong style="color:#4a7c59">含铝量相同</strong>，ANOVA是否会被"骗"？'};
+document.getElementById('auto3').onclick=()=>{let s=G.r3,rc=0,tot=0,bt=[27,30,33,36];for(let sim=0;sim<50;sim++){let gs=[[],[],[],[]];for(let i=0;i<4;i++){let n=4+Math.floor(Math.random()*7);for(let j=0;j<n;j++)gs[i].push(sample(bt[i],4))}let av=calcANOVA(gs);if(av){let p=pF(av.F,av.df1,av.df2);tot++;if(p<s.alpha)rc++}}let po=tot>0?(rc/tot*100).toFixed(0):0;showM('📊 模拟结果','🤖',null,'<p>进行了 <strong>50</strong> 次 ANOVA 模拟</p><p>成功拒绝 H₀：<strong style="color:#b5442c">'+rc+'/'+tot+'</strong>（≈'+po+'%）</p><p>🔑 功效越高 → 越容易检测到颜料来源差异。增加每组样本量可提高功效。</p>')};
+document.getElementById('rej3').onclick=()=>decide('r3','reject');
+document.getElementById('acc3').onclick=()=>decide('r3','accept');
+
+//══════════════════════ 决策 ══════════════════════
+function decide(round,decision){
+  let s=G[round],result,pVal,truthGood,stats='',edu='',verdict='',icon='',rej=decision==='reject';
+  if(round==='r1'){
+    let r=calc1(s.s,25);result=r;pVal=r?pT(Math.abs(r.t),s.s.length-1):null;truthGood=Math.abs(s.truth-25)<.05;
+    if(r){let sd=Math.sqrt(s.s.reduce((ss,x)=>ss+(x-r.mean)**2,0)/(s.s.length-1));stats='<div class="m-stat">📊 <strong>检测数据：</strong><br>n='+s.s.length+'份 | X̄='+r.mean.toFixed(1)+'% (青金石标准:25%)<br>s='+sd.toFixed(2)+'% | SE='+r.se.toFixed(2)+'% | t='+r.t.toFixed(3)+'<br>p='+pVal.toFixed(4)+' | α='+s.alpha.toFixed(2)+'<br>你的判断：'+(rej?'<span style="color:#b5442c">拒绝H₀（非青金石）</span>':'<span style="color:#4a7c59">不拒绝H₀（暂信为青金石）</span>')+'</div>'}
+    if(!r){verdict='⚠️ 数据不足';icon='🤔';edu='<p>至少需要 2 份样本才能计算 t 统计量。</p>'}
+    else if(rej&&!truthGood&&pVal<s.alpha){verdict='✅ 正确！数据支持，判断也正确';icon='🎉';edu='<p>含铝量确实偏离了 25%（真实μ='+s.truth.toFixed(1)+'%）。</p><p>p='+pVal.toFixed(4)+' < α='+s.alpha.toFixed(2)+' → <strong>小概率反证法：</strong>如果真是青金石，出现这样样本的概率太小了 → 拒绝H₀。你的判断既符合决策规则，又与真相一致。</p><p>🏜️ <em>新窟壁画颜料并非进口青金石，可能使用国产替代矿物——这是丝绸之路颜料贸易史的重要线索。</em></p>'}
+    else if(rej&&!truthGood&&pVal>=s.alpha){verdict='⚠️ 碰巧对了，但数据不支持拒绝';icon='🍀';edu='<p>含铝量确实偏离了 25%（真实μ='+s.truth.toFixed(1)+'%），但 p='+pVal.toFixed(4)+' ≥ α='+s.alpha.toFixed(2)+'，<strong>按决策规则本不该拒绝</strong>。</p><p>你靠直觉猜对了——但在统计学中，决策应严格遵循 p < α 规则。如果无视 p 值仅凭感觉，你下一次可能就错了。</p>'}
+    else if(!rej&&truthGood&&pVal>=s.alpha){verdict='✅ 正确！数据支持，判断也正确';icon='👍';edu='<p>含铝量与青金石标准一致（μ=25%）。p='+pVal.toFixed(4)+' ≥ α → 不拒绝H₀ ✓</p><p>🔑 <strong>关键理解：不拒绝≠接受。</strong>只是"现有证据不足以推翻"——就像法庭上证据不足无法定罪≠证明清白。</p>'}
+    else if(!rej&&truthGood&&pVal<s.alpha){verdict='⚠️ 碰巧对了，但数据指向拒绝';icon='🍀';edu='<p>含铝量确实=25%，但 p='+pVal.toFixed(4)+' < α → <strong>数据其实发出了"拒绝"信号</strong>，你却选择了不拒绝——侥幸对了。</p><p>🔑 当 p < α 时应当拒绝，否则你就是在无视统计证据。</p>'}
+    else if(rej&&truthGood&&pVal<s.alpha){verdict='❌ 第 I 类错误（数据"误导"了你）';icon='😰';edu='<p>颜料实为纯正青金石（μ=25%），但 p='+pVal.toFixed(4)+' < α → 落入了拒绝域。你按规则拒绝了，但错了。</p><p>📏 α='+s.alpha.toFixed(2)+' 正是为这种情况设计的：即使 H₀ 为真，仍有 '+(s.alpha*100).toFixed(0)+'% 的概率抽到"极端样本"。你撞上了那 '+(s.alpha*100).toFixed(0)+'%。</p><p>🔑 <strong>α-β 权衡：</strong>α 越小 → 越不易冤判 → 但越容易放过真实差异（第II类错误↑）。</p>'}
+    else if(rej&&truthGood&&pVal>=s.alpha){verdict='❌ 第 I 类错误（数据也不支持）';icon='😰';edu='<p>颜料实为青金石（μ=25%），且 p='+pVal.toFixed(4)+' ≥ α 本不该拒绝，你却拒绝了——<strong>双重错误</strong>：无视规则 + 冤枉真品。</p>'}
+    else if(!rej&&!truthGood&&pVal>=s.alpha){verdict='⚠️ 第 II 类错误（存伪）';icon='😟';edu='<p>颜料确实非青金石（μ='+s.truth.toFixed(1)+'%），但 p='+pVal.toFixed(4)+' ≥ α → 未检出。</p><p>📏 <strong>为何？</strong>n='+s.s.length+' 太小 → 标准误大（SE='+r.se.toFixed(2)+'%）→ 功效不足。虽然真实偏离了 '+(s.truth-25).toFixed(1)+'%，但信号被噪声淹没。</p><p>🔑 <strong>解决：</strong>① 增大样本量（多刮几份颜料！）；② 放宽 α（但会增加第I类错误）。</p>'}
+    else{verdict='⚠️ 第 II 类错误（忽视数据信号）';icon='😟';edu='<p>颜料确实非青金石（μ='+s.truth.toFixed(1)+'%），且 p='+pVal.toFixed(4)+' < α <strong>数据已发出"拒绝"信号</strong>，你却选择了不拒绝——错过了重要发现。</p>'}
+    if(r)document.getElementById('hint1').innerHTML='真相揭晓：真实含铝量 = <strong>'+s.truth.toFixed(1)+'%</strong>（青金石标准: 25%）'
+  }else if(round==='r2'){
+    let r=calc2(s.a,s.b);result=r;pVal=r?pT(Math.abs(r.t),s.a.length+s.b.length-2):null;truthGood=Math.abs(s.tA-s.tB)<.05;s.tot++;
+    if(r)stats='<div class="m-stat">📊 北窟:n='+s.a.length+' X̄='+r.mA.toFixed(1)+'% | 南窟:n='+s.b.length+' X̄='+r.mB.toFixed(1)+'%<br>t='+r.t.toFixed(3)+' | p='+pVal.toFixed(4)+' | α='+s.alpha.toFixed(2)+'</div>';
+    if(!r){verdict='⚠️ 数据不足';icon='🤔';edu='<p>两窟各需 ≥2 份样本。</p>'}
+    else if(rej&&!truthGood&&pVal<s.alpha){s.ok++;verdict='✅ 正确！数据支持，判断也正确';icon='🎉';edu='<p>北窟和南窟的颜料含铝量显著不同（Δ≈'+Math.abs(s.tA-s.tB).toFixed(1)+'%）。</p><p>p='+pVal.toFixed(4)+' < α → 拒绝H₀。你的判断既符合决策规则，又与真相一致。</p><p>🏛️ <em>这为"洞窟可能由不同画师群体、使用不同贸易路线采购颜料"的学术假说提供了统计证据。</em></p>'}
+    else if(rej&&!truthGood&&pVal>=s.alpha){s.ok++;verdict='⚠️ 碰巧对了，但数据不支持拒绝';icon='🍀';edu='<p>两窟确实不同源（Δ≈'+Math.abs(s.tA-s.tB).toFixed(1)+'%），但 p='+pVal.toFixed(4)+' ≥ α，<strong>按决策规则本不该拒绝</strong>。</p><p>你靠直觉猜对了——但统计决策应遵循 p < α 规则，否则无法控制错误率。</p>'}
+    else if(!rej&&truthGood&&pVal>=s.alpha){s.ok++;verdict='✅ 正确！';icon='👍';edu='<p>两窟颜料含铝量无显著差异，你的不拒绝决定与数据一致。</p>'}
+    else if(!rej&&truthGood&&pVal<s.alpha){s.ok++;verdict='⚠️ 碰巧对了，但数据指向拒绝';icon='🍀';edu='<p>两窟确实同源，但 p='+pVal.toFixed(4)+' < α → 数据其实发出了"拒绝"信号，你却选择了不拒绝——侥幸。</p>'}
+    else if(rej&&truthGood&&pVal<s.alpha){s.t1++;verdict='❌ 第 I 类错误（数据"误导"了你）';icon='😰';edu='<p>两窟实则同源，但 p='+pVal.toFixed(4)+' < α → 落入拒绝域。你按规则拒绝了，但错了。</p><p>📏 北窟 '+s.a.length+' 份+南窟 '+s.b.length+' 份，<strong>恰好抽到极端值</strong>——α='+s.alpha.toFixed(2)+' 意味着 H₀ 为真时仍有 '+(s.alpha*100).toFixed(0)+'% 概率冤判。</p>'}
+    else if(rej&&truthGood&&pVal>=s.alpha){s.t1++;verdict='❌ 第 I 类错误（数据也不支持）';icon='😰';edu='<p>两窟实则同源，且 p='+pVal.toFixed(4)+' ≥ α 本不该拒绝，你却拒绝了——双重错误。</p>'}
+    else if(!rej&&!truthGood&&pVal>=s.alpha){s.t2++;verdict='⚠️ 第 II 类错误（存伪）';icon='😟';edu='<p>两窟实则不同源（Δ≈'+Math.abs(s.tA-s.tB).toFixed(1)+'%），但未检出。</p><p>📏 <strong>为何？</strong>北窟仅 <strong>'+s.a.length+' 份</strong>、南窟仅 <strong>'+s.b.length+' 份</strong> → 样本量太小 → 标准误过大 → 功效不足 → 真实差异被噪声掩盖。</p><p>🔑 <strong>解决：</strong>增大样本量，或放宽 α（但会增加第I类错误）。</p><p>🏛️ <strong>代价：</strong>错失重要考古发现，让真相继续埋没于黄沙之下。</p>'}
+    else{s.t2++;verdict='⚠️ 第 II 类错误（忽视数据信号）';icon='😟';edu='<p>两窟实则不同源（Δ≈'+Math.abs(s.tA-s.tB).toFixed(1)+'%），且 p='+pVal.toFixed(4)+' < α <strong>数据已发出"拒绝"信号</strong>，你却选择了不拒绝——错过了重要发现。</p>'}
+    document.getElementById('ok2').textContent=s.ok;document.getElementById('t1_2').textContent=s.t1;document.getElementById('t2_2').textContent=s.t2;document.getElementById('tot2').textContent=s.tot;
+    if(r)document.getElementById('hint2').innerHTML='真相揭晓：北窟μ='+s.tA.toFixed(1)+'% | 南窟μ='+s.tB.toFixed(1)+'%'
+  }else if(round==='r3'){
+    let av=calcANOVA(s.gs);result=av;pVal=av?pF(av.F,av.df1,av.df2):null;truthGood=new Set(s.ts.map(t=>Math.round(t))).size===1;
+    if(av)stats='<div class="m-stat">📊 各石窟 X̄: '+av.means.map(m=>m.toFixed(1)).join(', ')+'%<br>F='+av.F.toFixed(3)+(pVal<s.alpha?' <span style="color:#b5442c">> F_crit</span>':' <span style="color:#4a7c59">< F_crit</span>')+' | p='+pVal.toFixed(4)+(pVal<s.alpha?' < α ← 落入拒绝域':' ≥ α ← 未落入拒绝域')+'<br>你选择：'+(rej?'<span style="color:#b5442c">拒绝H₀</span>':'<span style="color:#4a7c59">不拒绝H₀</span>')+' | 真实状态：'+(truthGood?'四石窟同源':'四石窟不同源')+'</div>';
+    if(!av){verdict='⚠️ 数据不足';icon='🤔';edu='<p>每个石窟各需 ≥2 份样本才能做 ANOVA。</p>'}
+    else if(rej&&!truthGood&&pVal<s.alpha){verdict='✅ 正确！数据支持，判断也正确';icon='🎉';edu='<p>F='+av.F.toFixed(2)+', p='+pVal.toFixed(4)+' < α='+s.alpha.toFixed(2)+' → <strong>数据明确指示拒绝 H₀</strong>。</p><p>你按规则拒绝了 H₀，而真相确实是四石窟颜料不同源。双重正确。</p>'}
+    else if(rej&&!truthGood&&pVal>=s.alpha){verdict='⚠️ 判断碰巧对了，但数据不支持';icon='🍀';edu='<p>p='+pVal.toFixed(4)+' ≥ α='+s.alpha.toFixed(2)+' → <strong>按决策规则其实不该拒绝</strong>，但你拒绝了。</p><p>真相确实不同源——你靠直觉猜对了，但统计上这不严谨。应依据 p < α 规则做决策。</p>'}
+    else if(!rej&&truthGood&&pVal>=s.alpha){verdict='✅ 正确！数据支持，判断也正确';icon='👍';edu='<p>p='+pVal.toFixed(4)+' ≥ α → 不拒绝 H₀ ✓ 四石窟确实同源 ✓</p>'}
+    else if(!rej&&truthGood&&pVal<s.alpha){verdict='⚠️ 判断碰巧对了，但数据指向拒绝';icon='🍀';edu='<p>p='+pVal.toFixed(4)+' < α → <strong>数据其实指向拒绝 H₀</strong>，但你选择了不拒绝。</p><p>真相确实同源——你侥幸对了。但当 p < α 时应当拒绝，否则无视了统计证据。</p>'}
+    else if(rej&&truthGood&&pVal<s.alpha){verdict='❌ 第 I 类错误（弃真）';icon='😰';edu='<p>四石窟实则颜料同源，但 p='+pVal.toFixed(4)+' < α → 落入了拒绝域。</p><p>📏 <strong>为何犯错？</strong>四石窟本无差异，但你恰好抽到了各组均值偏离较大的样本。α='+s.alpha.toFixed(2)+' 意味着 H₀ 为真时仍有 '+(s.alpha*100).toFixed(0)+'% 概率"冤判"——你撞上了。</p>'}
+    else if(rej&&truthGood&&pVal>=s.alpha){verdict='❌ 第 I 类错误（数据也不支持）';icon='😰';edu='<p>四石窟实则同源，且 p='+pVal.toFixed(4)+' ≥ α 本不该拒绝，你却拒绝了——双重错误。</p>'}
+    else if(!rej&&!truthGood&&pVal>=s.alpha){verdict='⚠️ 第 II 类错误（存伪）';icon='😟';edu='<p>四石窟实则不同源（真实均值: '+s.ts.map(t=>t.toFixed(0)).join(', ')+'%），但 p='+pVal.toFixed(4)+' ≥ α → 未检出。</p><p>📏 <strong>为何犯错？</strong>虽然存在真实差异，但每组样本量太小（n=仅 '+av.N/av.k+' 件/组）→ 标准误大 → ANOVA 功效不足 → 组间差异被组内波动淹没。</p><p>🔑 <strong>解决：</strong>增加每组样本量，或接受更大的 α（但会增加第 I 类错误）。</p>'}
+    else{verdict='⚠️ 第 II 类错误（忽视数据信号）';icon='😟';edu='<p>四石窟实则不同源，且 p='+pVal.toFixed(4)+' < α <strong>数据已发出"拒绝"信号</strong>，但你选择了不拒绝——错过了重要发现。</p>'}
+  }
+  showM(verdict,icon,stats,edu);
+}
+
+//══════════════════════ 章节进度 ══════════════════════
+// After each decision in chapter 1, user can proceed to chapter 2
+let origDecide=decide;
+decide=function(r,d){
+  origDecide(r,d);
+  if(r==='r1'&&G.r1.s.length>=2){
+    document.getElementById('dot2').classList.add('active');
+    document.getElementById('dot1').classList.add('done');
+  }
+  if(r==='r2'&&G.r2.a.length>=2&&G.r2.b.length>=2){
+    document.getElementById('dot3').classList.add('active');
+    document.getElementById('dot2').classList.add('done');
+  }
+};
+
+//══════════════════════ 初始化 ══════════════════════
+function init(){
+  // Share panel
+  let publicUrl='https://lalalalalalallll.github.io/hypothesis-detective/silkroad/';
+  let localUrl=window.location.href;
+  let shareUrl=publicUrl;
+  document.getElementById('shareUrl').textContent=shareUrl;
+  // Use local QR if on local, otherwise let the pre-generated image work
+  document.getElementById('qrImg').src=localUrl.startsWith('file')?'qr_code.png':'qr_code.png';
+  document.getElementById('btnCopy').onclick=function(){
+    navigator.clipboard.writeText(shareUrl).then(function(){
+      let m=document.getElementById('copyOk');m.style.display='inline';
+      setTimeout(function(){m.style.display='none'},2000);
+    });
+  };
+
+  G.r1.broken=Math.random()>.5;G.r1.truth=G.r1.broken?25+(Math.random()>.5?1:-1)*(3+Math.random()*4):25;rend('pig1',[],'blue1','💎');up1();document.getElementById('hint1').innerHTML=G.r1.broken?'🤫 颜料<strong style="color:#b5442c">确实并非纯正青金石</strong>（真实μ='+G.r1.truth.toFixed(1)+'%≠25%），试试能否检测？':'🤫 颜料<strong style="color:#4a7c59">确为纯正青金石</strong>（μ=25%），慎防误判！';
+  G.r2.broken=Math.random()<.7;let d=G.r2.broken?(Math.random()>.5?1:-1)*(3+Math.random()*4):0;G.r2.tA=25;G.r2.tB=25+d;rend('pig2A',[],'blue1','💎');rend('pig2B',[],'green1','🖌️');up2();
+  G.r3.broken=Math.random()<.5;let os=G.r3.broken?[0,4,7,10].map(v=>v+(Math.random()-.5)*4):[0,0,0,0];G.r3.ts=[25+os[0],25+os[1],25+os[2],25+os[3]];['pig3A','pig3B','pig3C','pig3D'].forEach((id,i)=>rend(id,[],['blue1','blue2','green1','gold1'][i],['💎','💠','🖌️','✨'][i]));up3();
+  drawChart('chart1',null,1,.05);drawChart('chart2',null,1,.05);drawChart('chart3',null,{df1:3,df2:4},.05,!0);
+  document.getElementById('overlay').onclick=function(e){if(e.target===this)this.classList.remove('active')}
+}
+init();
+console.log('🎨 丝路丹青已就绪！');
+console.log('💎 第一章：单样本 t 检验 — 青金石颜料鉴定');
+console.log('🏛️ 第二章：两样本 t 检验 — 南北两窟颜料对比');
+console.log('🗺️ 第三章：ANOVA — 丝路四石窟群普查');
+</script>
+</body>
+</html>
